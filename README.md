@@ -118,8 +118,6 @@ wget -P /root -N --no-check-certificate "https://raw.githubusercontent.com/Wizar
 
 [AGPL-3.0](https://github.com/Wizard89/v2ray-agent/blob/master/LICENSE)
 
-
 ## Stargazers over time
 
 [![Stargazers over time](https://starchart.cc/Wizard89/v2ray-agent.svg)](https://starchart.cc/Wizard89/v2ray-agent)
-
