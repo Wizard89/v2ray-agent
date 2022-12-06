@@ -12,4 +12,4 @@ apt update && apt install wget curl -y
 - Ubuntu
 ```
 apt-get update && apt-get install wget -y
-```1
+```
