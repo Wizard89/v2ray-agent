@@ -21,3 +21,4 @@
 # 5.游戏代理
 - 建议使用[Netch](https://github.com/NetchX/Netch/releases)
 - Netch设置不是很复杂，这里不过多描述，[官网入门教程](https://github.com/NetchX/Netch/blob/master/docs/Quickstart.zh-CN.md)。
+1
