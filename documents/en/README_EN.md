@@ -1,6 +1,3 @@
-# Original author: mack-a
-# Original project: https://github.com/mack-a/v2ray-agent
-
 # v2ray-agent
 
 > [Chinese Version](https://github.com/Wizard89/v2ray-agent/blob/master/README.md)
