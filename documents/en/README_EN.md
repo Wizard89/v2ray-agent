@@ -95,6 +95,12 @@ wget -P/root -N --no-check-certificate "https://raw.githubusercontent.com/Wizard
 
 <img src="https://raw.githubusercontent.com/Wizard89/v2ray-agent/master/fodder/install/install.jpg" width=700>
 
+# Copyright
+
+- 八合一脚本原作者：[mack-a](https://github.com/mack-a)
+- [Wizard](https://github.com/Wizard89)
+- 以及本项目的所有贡献者
+
 # licence
 
 [AGPL-3.0](https://github.com/Wizard89/v2ray-agent/blob/master/LICENSE)
