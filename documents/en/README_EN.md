@@ -95,7 +95,7 @@ wget -P/root -N --no-check-certificate "https://raw.githubusercontent.com/Wizard
 
 <img src="https://raw.githubusercontent.com/Wizard89/v2ray-agent/master/fodder/install/install.jpg" width=700>
 
-# Copyright
+# copyright
 
 - Original author of 8-in-1 script：[mack-a](https://github.com/mack-a)
 - [Wizard](https://github.com/Wizard89)
