@@ -88,6 +88,10 @@
 
 ## [脚本使用指南](https://github.com/Wizard89/v2ray-agent/blob/master/documents/how_to_use.md)、[脚本目录](https://github.com/Wizard89/v2ray-agent/blob/master/documents/how_to_use.md#5脚本目录)
 
+## 捐赠
+
+[您可以使用我的AFF进行购买VPS捐赠](https://github.com/Wizard89/v2ray-agent/blob/master/documents/donation_aff.md)
+
 ## 安装脚本
 
 - 支持快捷方式启动，安装完毕后，shell输入【**vasma**】即可打开脚本，脚本执行路径[**/etc/v2ray-agent/install.sh**]
