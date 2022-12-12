@@ -111,7 +111,7 @@ wget -P /root -N --no-check-certificate "https://raw.githubusercontent.com/Wizar
 # 版权
 
 - 八合一脚本原作者：[mack-a](https://github.com/mack-a)
-- [Reece](https://github.com/reeceyng)
+- [Wizard](https://github.com/Wizard89)
 - 以及本项目的所有贡献者
 
 # 许可证
