@@ -97,9 +97,9 @@ wget -P/root -N --no-check-certificate "https://raw.githubusercontent.com/Wizard
 
 # Copyright
 
-- 八合一脚本原作者：[mack-a](https://github.com/mack-a)
+- Original author of 8-in-1 script：[mack-a](https://github.com/mack-a)
 - [Wizard](https://github.com/Wizard89)
-- 以及本项目的所有贡献者
+- and all contributors to this project
 
 # licence
 
