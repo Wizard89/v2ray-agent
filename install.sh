@@ -197,6 +197,9 @@ initVar() {
 	# 是否为预览版
 	prereleaseStatus=false
 
+	# xtls是否使用vision
+	xtlsRprxVision=
+	
 	# ssl类型
 	sslType=
 
