@@ -858,6 +858,7 @@ initTLSNginxConfig() {
 	handleNginx stop
 	echoContent skyBlue "\n进度  $1/${totalProgress} : 初始化Nginx申请证书配置"
 	if [[ -n "${currentHost}" ]]; then
+            echo "读取到上次安装记录，上次安装时的域名： ${currentHost}"
 		echo
 		read -r -p "读取到上次安装记录，是否使用上次安装时的域名 ？[y/n]:" historyDomainStatus
 		if [[ "${historyDomainStatus}" == "y" ]]; then
