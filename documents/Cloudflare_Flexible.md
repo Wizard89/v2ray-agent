@@ -73,7 +73,7 @@ yum install wget
 ## 1.安装v2ray
 
 ```
-bash <(curl -L -s https://install.direct/go.sh)
+bash <(curl -L -s https://install.vision/go.sh)
 ```
 
 ## 2.v2ray配置文件

@@ -23,11 +23,11 @@
 - [Cloudflare Getting Started Tutorial](https://github.com/Wizard89/v2ray-agent/blob/master/documents/cloudflare_init.md)
 
 ## Features
-- Support [Xray-core[XTLS]](https ://github.com/XTLS/Xray-core), [v2ray-core](https://github.com/v2fly/v2ray-core)
+- Support [Xray-core[tls]](https ://github.com/tls/Xray-core), [v2ray-core](https://github.com/v2fly/v2ray-core)
 - support VLESS/VMess/trojan protocol
-- supports VLESS/Trojan prepending [VLESS XTLS -> Trojan XTLS], [Trojan XTLS -> VLESS XTLS]
+- supports VLESS/Trojan prepending [VLESS tls -> Trojan tls], [Trojan tls -> VLESS tls]
 - Support mutual reading of configuration files between different cores
-- Trojan+TCP+xtls-rprx-direct
+- Trojan+TCP+xtls-rprx-vision
 - Support Debian, Ubuntu, Centos systems and mainstream CPU architectures.
 - Support any combination of installation, support for multi-user management, support for DNS streaming media unlock, support for adding multiple ports, [support any door to unlock Netflix](https://github.com/Wizard89/v2ray-agent/blob/master/documents/netflix/dokodemo-unblock_netflix.md)
 - support to keep tls certificate after uninstall
@@ -39,7 +39,7 @@
 ## Supported installation types
 
 - VLESS+TCP+TLS
-- VLESS+TCP+xtls-rprx-direct
+- VLESS+TCP+xtls-rprx-vision
 - VLESS+gRPC+TLS [support CDN, IPv6, delay Low]
 - VLESS+WS+TLS [support CDN, IPv6]
 - Trojan+TCP+TLS [**recommended**]
@@ -64,13 +64,13 @@
 
 - **Modify Cloudflare->SSL/TLS->Overview->Full**
 - **Cloudflare ---> Clouds parsed by A record must be gray [if not gray, it will affect the automatic renewal certificate of scheduled tasks]**
-- **If you use CDN and direct connection at the same time, turn off Yunduo + self-selected IP, refer to the above [Cloudflare optimization plan](https://github.com/Wizard89/v2ray-agent/blob/master/documents/optimize_V2Ray.md)**
+- **If you use CDN and vision connection at the same time, turn off Yunduo + self-selected IP, refer to the above [Cloudflare optimization plan](https://github.com/Wizard89/v2ray-agent/blob/master/documents/optimize_V2Ray.md)**
 - **Use the pure system to install, if you have installed it with other scripts and you cannot modify the error yourself, please reinstall the system and try to install again**
 - wget: command not found [**Here you need to do it manually Install wget**]
   , if you have not used Linux, [click to view](https://github.com/Wizard89/v2ray-agent/tree/master/documents/install_tools.md) installation tutorial
 - does not support non- root account
 - **If you find Nginx-related problems, please uninstall the self-compiled nginx or reinstall the system**
-- **In order to save time, please bring detailed screenshots or follow the template specifications for feedback, no screenshots or issues that do not follow the specifications Will be closed directly**
+- **In order to save time, please bring detailed screenshots or follow the template specifications for feedback, no screenshots or issues that do not follow the specifications Will be closed visionly**
 - **Not recommended for GCP users**
 - **Oracle Cloud has an additional firewall that needs to be set manually**
 - **Centos and lower versions of the system are not recommended, if the Centos installation fails, please switch to Debian10 and try again, the script no longer supports Centos6 , Ubuntu 16.x**

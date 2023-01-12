@@ -24,11 +24,11 @@
 - Xray-core
 - v2ray-core
 
-此版本不支持xtls
+此版本不支持tls
 
-- v2ray-core[XTLS]
+- v2ray-core[tls]
 
-最后一个支持xtls的v2ray-core版本
+最后一个支持tls的v2ray-core版本
 
 <img src="https://raw.githubusercontent.com/Wizard89/v2ray-agent/master/fodder/how_to_use/01.png" width=700>
 
@@ -210,9 +210,9 @@ systemctl disable trojan-go
 - 建议自己多测试找出适合自己的
 
 
-## 2.流控[xtls-rprx-direct、xtls-rprx-splice]答疑
+## 2.流控[xtls-rprx-vision、tls-rprx-splice]答疑
 
-- xtls-rprx-direct为服务端，xtls-rprx-splice为客户端，并且仅支持linux[路由器、软路由]、android
+- xxtls-rprx-vision为服务端，tls-rprx-splice为客户端，并且仅支持linux[路由器、软路由]、android
 
 ## 3.GCP挖矿或者其余警告被封实例
 

@@ -29,8 +29,8 @@
 - [Cloudflare入门教程](https://github.com/Wizard89/v2ray-agent/blob/master/documents/cloudflare_init.md)
 
 ## 特性
-- 支持[Xray-core[XTLS]](https://github.com/XTLS/Xray-core)、[v2ray-core](https://github.com/v2fly/v2ray-core)
-- 支持VLESS/Trojan前置[VLESS XTLS -> Trojan XTLS]、[Trojan XTLS -> VLESS XTLS]
+- 支持[Xray-core[tls]](https://github.com/tls/Xray-core)、[v2ray-core](https://github.com/v2fly/v2ray-core)
+- 支持VLESS/Trojan前置[VLESS tls -> Trojan tls]、[Trojan tls -> VLESS tls]
 - 支持不同核心之间的配置文件互相读取
 - 支持 VLESS/VMess/trojan 协议
 - 支持Debian、Ubuntu、Centos系统，支持主流的cpu架构。
@@ -44,11 +44,11 @@
 ## 支持的安装类型
 
 - VLESS+TCP+TLS
-- VLESS+TCP+xtls-rprx-direct
+- VLESS+TCP+xtls-rprx-vision
 - VLESS+gRPC+TLS【支持CDN、IPv6、延迟低】
 - VLESS+WS+TLS【支持CDN、IPv6】
 - Trojan+TCP+TLS【**推荐**】
-- Trojan+TCP+xtls-rprx-direct
+- Trojan+TCP+xtls-rprx-vision
 - Trojan+gRPC+TLS【支持CDN、IPv6、延迟低】
 - VMess+WS+TLS【支持CDN、IPv6】
 
