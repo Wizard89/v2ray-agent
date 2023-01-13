@@ -1650,13 +1650,13 @@ installXray() {
 
 	if [[ "${coreInstallType}" != "1" ]]; then
 
-		version=$(curl -s https://api.github.com/repos/tls/Xray-core/releases | jq -r '.[]|select (.prerelease==false)|.tag_name' | head -1)
+		version=$(curl -s https://api.github.com/repos/XTLS/Xray-core/releases | jq -r '.[]|select (.prerelease==false)|.tag_name' | head -1)
 
 		echoContent green " ---> Xray-core版本:${version}"
 		if wget --help | grep -q show-progress; then
-			wget -c -q --show-progress -P /etc/v2ray-agent/xray/ "https://github.com/tls/Xray-core/releases/download/${version}/${xrayCoreCPUVendor}.zip"
+			wget -c -q --show-progress -P /etc/v2ray-agent/xray/ "https://github.com/XTLS/Xray-core/releases/download/${version}/${xrayCoreCPUVendor}.zip"
 		else
-			wget -c -P /etc/v2ray-agent/xray/ "https://github.com/tls/Xray-core/releases/download/${version}/${xrayCoreCPUVendor}.zip" >/dev/null 2>&1
+			wget -c -P /etc/v2ray-agent/xray/ "https://github.com/XTLS/Xray-core/releases/download/${version}/${xrayCoreCPUVendor}.zip" >/dev/null 2>&1
 		fi
 
 		unzip -o "/etc/v2ray-agent/xray/${xrayCoreCPUVendor}.zip" -d /etc/v2ray-agent/xray >/dev/null
@@ -1744,10 +1744,10 @@ xrayVersionManageMenu() {
 		echoContent yellow "2.不保证回退后一定可以正常使用"
 		echoContent yellow "3.如果回退的版本不支持当前的config，则会无法连接，谨慎操作"
 		echoContent skyBlue "------------------------Version-------------------------------"
-		curl -s https://api.github.com/repos/tls/Xray-core/releases | jq -r '.[]|select (.prerelease==false)|.tag_name' | head -5 | awk '{print ""NR""":"$0}'
+		curl -s https://api.github.com/repos/XTLS/Xray-core/releases | jq -r '.[]|select (.prerelease==false)|.tag_name' | head -5 | awk '{print ""NR""":"$0}'
 		echoContent skyBlue "--------------------------------------------------------------"
 		read -r -p "请输入要回退的版本:" selectXrayVersionType
-		version=$(curl -s https://api.github.com/repos/tls/Xray-core/releases | jq -r '.[]|select (.prerelease==false)|.tag_name' | head -5 | awk '{print ""NR""":"$0}' | grep "${selectXrayVersionType}:" | awk -F "[:]" '{print $2}')
+		version=$(curl -s https://api.github.com/repos/XTLS/Xray-core/releases | jq -r '.[]|select (.prerelease==false)|.tag_name' | head -5 | awk '{print ""NR""":"$0}' | grep "${selectXrayVersionType}:" | awk -F "[:]" '{print $2}')
 		if [[ -n "${version}" ]]; then
 			updateXray "${version}"
 		else
@@ -1848,15 +1848,15 @@ updateXray() {
 		if [[ -n "$1" ]]; then
 			version=$1
 		else
-			version=$(curl -s https://api.github.com/repos/tls/Xray-core/releases | jq -r ".[]|select (.prerelease==${prereleaseStatus})|.tag_name" | head -1)
+			version=$(curl -s https://api.github.com/repos/XTLS/Xray-core/releases | jq -r ".[]|select (.prerelease==${prereleaseStatus})|.tag_name" | head -1)
 		fi
 
 		echoContent green " ---> Xray-core版本:${version}"
 
 		if wget --help | grep -q show-progress; then
-			wget -c -q --show-progress -P /etc/v2ray-agent/xray/ "https://github.com/tls/Xray-core/releases/download/${version}/${xrayCoreCPUVendor}.zip"
+			wget -c -q --show-progress -P /etc/v2ray-agent/xray/ "https://github.com/XTLS/Xray-core/releases/download/${version}/${xrayCoreCPUVendor}.zip"
 		else
-			wget -c -P /etc/v2ray-agent/xray/ "https://github.com/tls/Xray-core/releases/download/${version}/${xrayCoreCPUVendor}.zip" >/dev/null 2>&1
+			wget -c -P /etc/v2ray-agent/xray/ "https://github.com/XTLS/Xray-core/releases/download/${version}/${xrayCoreCPUVendor}.zip" >/dev/null 2>&1
 		fi
 
 		unzip -o "/etc/v2ray-agent/xray/${xrayCoreCPUVendor}.zip" -d /etc/v2ray-agent/xray >/dev/null
@@ -1870,7 +1870,7 @@ updateXray() {
 		if [[ -n "$1" ]]; then
 			version=$1
 		else
-			version=$(curl -s https://api.github.com/repos/tls/Xray-core/releases | jq -r ".[]|select (.prerelease==${prereleaseStatus})|.tag_name" | head -1)
+			version=$(curl -s https://api.github.com/repos/XTLS/Xray-core/releases | jq -r ".[]|select (.prerelease==${prereleaseStatus})|.tag_name" | head -1)
 		fi
 
 		if [[ -n "$1" ]]; then
@@ -1999,7 +1999,7 @@ installXrayService() {
 		cat <<EOF >/etc/systemd/system/xray.service
 [Unit]
 Description=Xray Service
-Documentation=https://github.com/tls/Xray-core
+Documentation=https://github.com/XTLS/Xray-core
 After=network.target nss-lookup.target
 Wants=network-online.target
 
@@ -2581,7 +2581,7 @@ EOF
      {
         "id": "${uuid}",
         "add":"${add}",
-        "email": "${domain}_VLESS_TLS-vision_TCP"
+        "email": "${domain}_VLESS_TLS-direct_TCP"
       }
     ],
     "decryption": "none",
@@ -2616,7 +2616,7 @@ EOF
 
 }
 
-# 初始化Xray Trojan tls 配置文件
+# 初始化Xray Trojan XTLS 配置文件
 initXrayFrontingConfig() {
 	echoContent red " ---> Trojan暂不支持 xtls-rprx-vision"
     exit 0;
@@ -2628,44 +2628,44 @@ initXrayFrontingConfig() {
 	if [[ "${coreInstallType}" != "1" ]]; then
 		echoContent red " ---> 未安装可用类型"
 	fi
-	local tlsType=
+	local xtlsType=
 	if echo ${currentInstallProtocolType} | grep -q trojan; then
-		tlsType=VLESS
+		xtlsType=VLESS
 	else
-		tlsType=Trojan
+		xtlsType=Trojan
 
 	fi
 
-	echoContent skyBlue "\n功能 1/${totalProgress} : 前置切换为${tlsType}"
+	echoContent skyBlue "\n功能 1/${totalProgress} : 前置切换为${xtlsType}"
 	echoContent red "\n=============================================================="
 	echoContent yellow "# 注意事项\n"
-	echoContent yellow "会将前置替换为${tlsType}"
-	echoContent yellow "如果前置是Trojan，查看账号时则会出现两个Trojan协议的节点，有一个不可用tls"
+	echoContent yellow "会将前置替换为${xtlsType}"
+	echoContent yellow "如果前置是Trojan，查看账号时则会出现两个Trojan协议的节点，有一个不可用xtls"
 	echoContent yellow "再次执行可切换至上一次的前置\n"
 
-	echoContent yellow "1.切换至${tlsType}"
+	echoContent yellow "1.切换至${xtlsType}"
 	echoContent red "=============================================================="
 	read -r -p "请选择:" selectType
 	if [[ "${selectType}" == "1" ]]; then
 
-		if [[ "${tlsType}" == "Trojan" ]]; then
+		if [[ "${xtlsType}" == "Trojan" ]]; then
 
 			local VLESSConfig
 			VLESSConfig=$(cat ${configPath}${frontingType}.json)
 			VLESSConfig=${VLESSConfig//"id"/"password"}
-			VLESSConfig=${VLESSConfig//VLESSTCP/TrojanTCPtls}
+			VLESSConfig=${VLESSConfig//VLESSTCP/TrojanTCPXTLS}
 			VLESSConfig=${VLESSConfig//VLESS/Trojan}
 			VLESSConfig=${VLESSConfig//"vless"/"trojan"}
 			VLESSConfig=${VLESSConfig//"id"/"password"}
 
 			echo "${VLESSConfig}" | jq . >${configPath}02_trojan_TCP_inbounds.json
 			rm ${configPath}${frontingType}.json
-		elif [[ "${tlsType}" == "VLESS" ]]; then
+		elif [[ "${xtlsType}" == "VLESS" ]]; then
 
 			local VLESSConfig
 			VLESSConfig=$(cat ${configPath}02_trojan_TCP_inbounds.json)
 			VLESSConfig=${VLESSConfig//"password"/"id"}
-			VLESSConfig=${VLESSConfig//TrojanTCPtls/VLESSTCP}
+			VLESSConfig=${VLESSConfig//TrojanTCPXTLS/VLESSTCP}
 			VLESSConfig=${VLESSConfig//Trojan/VLESS}
 			VLESSConfig=${VLESSConfig//"trojan"/"vless"}
 			VLESSConfig=${VLESSConfig//"password"/"id"}
@@ -2787,7 +2787,7 @@ EOF
 }
 EOF
 
-	# VLESS_TCP_TLS/tls
+	# VLESS_TCP_TLS/XTLS
 	# 回落nginx
 	local fallbacksList='{"dest":31300,"xver":0},{"alpn":"h2","dest":31302,"xver":0}'
 
@@ -3135,14 +3135,14 @@ EOF
 			echoContent green "    https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=vless%3a%2f%2f${id}%40${currentHost}%3a${currentDefaultPort}%3fsecurity%3dtls%26encryption%3dnone%26host%3d${currentHost}%26headerType%3dnone%26type%3dtcp%23${email}\n"
 		fi
 
-	elif [[ "${type}" == "trojanTCPxtls" ]]; then
+	elif [[ "${type}" == "trojanTCPXTLS" ]]; then
 		echoContent yellow " ---> 通用格式(Trojan+TCP+TLS/xtls-rprx-vision)"
-		echoContent green "    trojan://${id}@${currentHost}:${currentDefaultPort}?encryption=none&security=tls&type=tcp&host=${currentHost}&headerType=none&sni=${currentHost}&flow=xtls-rprx-vision#${email}\n"
+		echoContent green "    trojan://${id}@${currentHost}:${currentDefaultPort}?encryption=none&security=xtls&type=tcp&host=${currentHost}&headerType=none&sni=${currentHost}&flow=xtls-rprx-vision#${email}\n"
 
 		echoContent yellow " ---> 格式化明文(Trojan+TCP+TLS/xtls-rprx-vision)"
-		echoContent green "协议类型:Trojan，地址:${currentHost}，端口:${currentDefaultPort}，用户ID:${id}，安全:tls，传输方式:tcp，flow:xtls-rprx-vision，账户名:${email}\n"
+		echoContent green "协议类型:Trojan，地址:${currentHost}，端口:${currentDefaultPort}，用户ID:${id}，安全:xtls，传输方式:tcp，flow:xtls-rprx-vision，账户名:${email}\n"
 		cat <<EOF >>"/etc/v2ray-agent/subscribe_tmp/${subAccount}"
-trojan://${id}@${currentHost}:${currentDefaultPort}?encryption=none&security=tls&type=tcp&host=${currentHost}&headerType=none&sni=${currentHost}&flow=xtls-rprx-vision#${email}
+trojan://${id}@${currentHost}:${currentDefaultPort}?encryption=none&security=xtls&type=tcp&host=${currentHost}&headerType=none&sni=${currentHost}&flow=xtls-rprx-vision#${email}
 EOF
         echoContent yellow " ---> 二维码 Trojan(Trojan+TCP+TLS/xtls-rprx-vision)"
         echoContent green "    https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=trojan%3A%2F%2F${id}%40${currentHost}%3A${currentDefaultPort}%3Fencryption%3Dnone%26security%3Dxtls%26type%3Dtcp%26${currentHost}%3D${currentHost}%26headerType%3Dnone%26sni%3D${currentHost}%26flow%3Dxtls-rprx-vision%23${email}\n"
@@ -3587,6 +3587,7 @@ EOF
 
 			echoContent green " ---> 添加成功"
 			reloadCore
+			addCorePort
 		fi
 	elif [[ "${selectNewPortType}" == "2" ]]; then
 
@@ -3597,6 +3598,7 @@ EOF
 		if [[ -n "${dokoConfig}" ]]; then
 			rm "${configPath}/$(echo "${dokoConfig}" | awk -F "[:]" '{print $2}')"
 			reloadCore
+			addCorePort
 		else
 			echoContent yellow "\n ---> 编号输入错误，请重新选择"
 			addCorePort
@@ -5012,7 +5014,7 @@ EOF
 customV2RayInstall() {
 	echoContent skyBlue "\n========================个性化安装============================"
 	echoContent yellow "VLESS前置，默认安装0，如果只需要安装0，则只选择0即可"
-	echoContent yellow "0.VLESS+TLS/tls+TCP"
+	echoContent yellow "0.VLESS+TLS/XTLS+TCP"
 	echoContent yellow "1.VLESS+TLS+WS[CDN]"
 	echoContent yellow "2.Trojan+TLS+gRPC[CDN]"
 	echoContent yellow "3.VMess+TLS+WS[CDN]"
@@ -5061,7 +5063,7 @@ customV2RayInstall() {
 customXrayInstall() {
 	echoContent skyBlue "\n========================个性化安装============================"
 	echoContent yellow "VLESS前置，默认安装0，如果只需要安装0，则只选择0即可"
-	echoContent yellow "0.VLESS+TLS/tls+TCP"
+	echoContent yellow "0.VLESS+TLS/XTLS+TCP"
 	echoContent yellow "1.VLESS+TLS+WS[CDN]"
 	echoContent yellow "2.Trojan+TLS+gRPC[CDN]"
 	echoContent yellow "3.VMess+TLS+WS[CDN]"
