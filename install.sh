@@ -344,7 +344,7 @@ readInstallAlpn() {
 		local alpn
 		alpn=$(jq -r .inbounds[0].streamSettings.tlsSettings.alpn[0] ${configPath}${frontingType}.json)
 		if [[ -n ${alpn} ]]; then
-			currentAlpn=${alpn}
+		    currentAlpn=${alpn}
 		fi
 	fi
 }
@@ -526,13 +526,13 @@ showInstallStatus() {
 			if [[ "${coreInstallType}" == 2 ]]; then
 				echoContent yellow "VLESS+TCP[TLS] \c"
 			else
-				echoContent yellow "VLESS+TCP[TLS/tls] \c"
+				echoContent yellow "VLESS+TCP[TLS/XTLS] \c"
 			fi
 		fi
 
 		if echo ${currentInstallProtocolType} | grep -q trojan; then
 			if [[ "${coreInstallType}" == 1 ]]; then
-				echoContent yellow "Trojan+TCP[TLS/tls] \c"
+				echoContent yellow "Trojan+TCP[TLS/XTLS] \c"
 			fi
 		fi
 
