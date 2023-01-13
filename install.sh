@@ -189,7 +189,7 @@ initVar() {
 	installTLSCount=
 
 	# BTPanel状态
-	#	BTPanelStatus=
+	#   BTPanelStatus=
 
 	# nginx配置文件路径
 	nginxConfigPath=/etc/nginx/conf.d/
