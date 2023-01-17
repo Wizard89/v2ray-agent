@@ -29,28 +29,27 @@
 - [Cloudflare入门教程](https://github.com/Wizard89/v2ray-agent/blob/master/documents/cloudflare_init.md)
 
 ## 特性
-- 支持[Xray-core[tls]](https://github.com/tls/Xray-core)、[v2ray-core](https://github.com/v2fly/v2ray-core)
-- 支持VLESS/Trojan前置[VLESS tls -> Trojan tls]、[Trojan tls -> VLESS tls]
+- 支持[Xray-core[XTLS]](https://github.com/XTLS/Xray-core)、[v2ray-core](https://github.com/v2fly/v2ray-core)、[hysteria](https://github.com/apernet/hysteria)
 - 支持不同核心之间的配置文件互相读取
-- 支持 VLESS/VMess/trojan 协议
+- 支持 VLESS/VMess/Trojan 协议
 - 支持Debian、Ubuntu、Centos系统，支持主流的cpu架构。
-- 支持任意组合安装、支持多用户管理、支持DNS流媒体解锁、支持添加多端口、[支持任意门解锁Netflix](https://github.com/Wizard89/v2ray-agent/blob/master/documents/netflix/dokodemo-unblock_netflix.md)
+- 支持任意组合安装、支持多用户管理、支持DNS流媒体解锁、支持添加多端口、[支持支持任意门转发流量，可用于解锁Netflix、Google人机验证等](https://github.com/Wizard89/v2ray-agent/blob/master/documents/netflix/dokodemo-unblock_netflix.md)
 - 支持卸载后保留tls证书
 - 支持IPv6，[IPv6注意事项](https://github.com/Wizard89/v2ray-agent/blob/master/documents/ipv6_help.md)
-- 支持WARP分流、IPv6分流
+- 支持WARP分流、IPv6分流、任意门分流
 - 支持BT下载管理、日志管理、域名黑名单管理、核心管理、伪装站点管理
 - [支持自定义证书安装](https://github.com/Wizard89/v2ray-agent/blob/master/documents/install_tls.md)
 
 ## 支持的安装类型
 
 - VLESS+TCP+TLS
-- VLESS+TCP+xtls-rprx-vision
+- VLESS+TCP+xtls-rprx-vision【推荐】
 - VLESS+gRPC+TLS【支持CDN、IPv6、延迟低】
 - VLESS+WS+TLS【支持CDN、IPv6】
-- Trojan+TCP+TLS【**推荐**】
-- Trojan+TCP+xtls-rprx-vision
+- Trojan+TCP+TLS
 - Trojan+gRPC+TLS【支持CDN、IPv6、延迟低】
 - VMess+WS+TLS【支持CDN、IPv6】
+- Hysteria【推荐】
 
 ## 线路推荐
 
@@ -58,7 +57,6 @@
 - 上海CN2+HK
 - [AS4837](https://github.com/Wizard89/v2ray-agent/blob/master/documents/donation_aff.md#3%E8%81%94%E9%80%9A-as4837%E6%99%AE%E9%80%9A%E6%B0%91%E7%94%A8%E7%BD%91)
 - [联通日本软银](https://github.com/Wizard89/v2ray-agent/blob/master/documents/donation_aff.md#4%E8%81%94%E9%80%9A-%E6%97%A5%E6%9C%AC%E8%BD%AF%E9%93%B6)
-- 联通+台湾TFN
 - 联通+NTT
 - 广移/珠移+HKIX/CMI/NTT
 - 广移/CN2+Cloudflare+全球
@@ -99,12 +97,6 @@
 
 ```
 wget -P /root -N --no-check-certificate "https://raw.githubusercontent.com/Wizard89/v2ray-agent/master/install.sh" && chmod 700 /root/install.sh && /root/install.sh
-```
-
-- shadowsocks 动态IP白名单模式【Beta】
-
-```
-wget -P /root -N --no-check-certificate "https://raw.githubusercontent.com/Wizard89/v2ray-agent/dev_ss/install.sh" && chmod 700 /root/install.sh && /root/install.sh
 ```
 
 # 示例图
