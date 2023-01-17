@@ -95,6 +95,6 @@ www.digitalocean.com|xx|xx|xx
 > [这里贴一下V2Ray白话文指南具体说明](https://guide.v2fly.org/advanced/cdn.html)
 
 ## cloudflare gRPC断流
-- [grpc协议下UDP通过cloudflare会断](https://github.com/tls/Xray-core/issues/671)
+- [grpc协议下UDP通过cloudflare会断](https://github.com/XTLS//Xray-core/issues/671)
 - [为什么套用 cloudflare grpc 会断流](https://github.com/v2fly/v2ray-core/discussions/1174)
 
