@@ -10,7 +10,7 @@
 
 # 1.准备工作
 - 1.需要一台没被墙的VPS（IPLC可使用被墙的）。
-- 2.必须保证在不用流量转发服务的情况可以使用tls/TLS+VLESS、Trojan，这里的Trojan、tls/TLS+VLESS、websocket+tls 设置方法相同，下面是用websocket+tls示例。
+- 2.必须保证在不用流量转发服务的情况可以使用XTLS/TLS+VLESS、Trojan，这里的Trojan、XTLS/TLS+VLESS、websocket+tls 设置方法相同，下面是用websocket+tls示例。
 
 # 2.购买流量转发服务
 
