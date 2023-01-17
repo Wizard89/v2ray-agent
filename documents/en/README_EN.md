@@ -23,9 +23,9 @@
 - [Cloudflare Getting Started Tutorial](https://github.com/Wizard89/v2ray-agent/blob/master/documents/cloudflare_init.md)
 
 ## Features
-- Support [Xray-core[tls]](https ://github.com/tls/Xray-core), [v2ray-core](https://github.com/v2fly/v2ray-core)
+- Support [Xray-core[XTLS]](https ://github.com/XTLS/Xray-core), [v2ray-core](https://github.com/v2fly/v2ray-core)
 - support VLESS/VMess/trojan protocol
-- supports VLESS/Trojan prepending [VLESS tls -> Trojan tls], [Trojan tls -> VLESS tls]
+- supports VLESS/Trojan prepending [VLESS XTLS -> Trojan XTLS], [Trojan XTLS -> VLESS XTLS]
 - Support mutual reading of configuration files between different cores
 - Trojan+TCP+xtls-rprx-vision
 - Support Debian, Ubuntu, Centos systems and mainstream CPU architectures.
@@ -39,7 +39,7 @@
 ## Supported installation types
 
 - VLESS+TCP+TLS
-- VLESS+TCP+xtls-rprx-vision
+- VLESS+TCP+xtls-rprx-direct
 - VLESS+gRPC+TLS [support CDN, IPv6, delay Low]
 - VLESS+WS+TLS [support CDN, IPv6]
 - Trojan+TCP+TLS [**recommended**]
