@@ -31,7 +31,7 @@
 ## 特性
 - 支持[Xray-core[XTLS]](https://github.com/XTLS/Xray-core)、[v2ray-core](https://github.com/v2fly/v2ray-core)、[hysteria](https://github.com/apernet/hysteria)
 - 支持不同核心之间的配置文件互相读取
-- 支持 VLESS/VMess/Trojan 协议
+- 支持 VLESS/VMess/Trojan/hysteria 协议
 - 支持Debian、Ubuntu、Centos系统，支持主流的cpu架构。
 - 支持任意组合安装、支持多用户管理、支持DNS流媒体解锁、支持添加多端口、[支持支持任意门转发流量，可用于解锁Netflix、Google人机验证等](https://github.com/Wizard89/v2ray-agent/blob/master/documents/netflix/dokodemo-unblock_netflix.md)
 - 支持卸载后保留tls证书
