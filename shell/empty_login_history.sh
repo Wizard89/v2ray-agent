@@ -11,4 +11,3 @@ echo "删除脚本"
 rm -rf /tmp/empty_login_history.sh
 history -c
 echo "done"
-
