@@ -1763,6 +1763,20 @@ xrayVersionManageMenu() {
 	fi
 
 }
+
+# 更新 geosite
+updateGeoSite() {
+    echoContent yellow "\n来源 https://github.com/Loyalsoldier/v2ray-rules-dat"
+
+    version=$(curl -s https://api.github.com/repos/Loyalsoldier/v2ray-rules-dat/releases | jq -r '.[]|.tag_name' | head -1)
+    echoContent skyBlue "------------------------Version-------------------------------"
+    echo "version:${version}"
+	wget -c -q --show-progress -P ${configPath}../ "https://github.com/Loyalsoldier/v2ray-rules-dat/releases/download/${version}/geosite.dat"
+    wget -c -q --show-progress -P ${configPath}../ "https://github.com/Loyalsoldier/v2ray-rules-dat/releases/download/${version}/geoip.dat"
+    reloadCore
+    echoContent green " ---> 更新完毕"
+
+}
 # 更新V2Ray
 updateV2Ray() {
 	readInstallType
