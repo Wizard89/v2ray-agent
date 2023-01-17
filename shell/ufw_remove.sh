@@ -5,3 +5,4 @@ systemctl disable ufw
 iptables -F
 iptables -I INPUT -i eth0 -m state --state ESTABLISHED,RELATED -j ACCEPT
 iptables -I OUTPUT -o eth0 -d 0.0.0.0/0 -j ACCEPT
+
