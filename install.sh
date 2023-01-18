@@ -3760,7 +3760,7 @@ customUUID() {
 	else
 		jq -r -c '.inbounds[0].settings.clients[].id' ${configPath}${frontingType}.json | while read -r line; do
 			if [[ "${line}" == "${currentCustomUUID}" ]]; then
-				echo >/tmp/v2ray-agent
+			    echo >/tmp/v2ray-agent
 			fi
 		done
 		if [[ -f "/tmp/v2ray-agent" && -n $(cat /tmp/v2ray-agent) ]]; then
@@ -5085,7 +5085,7 @@ customXrayInstall() {
 	echoContent yellow "1.VLESS+TLS+WS[CDN]"
 	echoContent yellow "2.Trojan+TLS+gRPC[CDN]"
 	echoContent yellow "3.VMess+TLS+WS[CDN]"
-	echoContent yellow "4.Trojan"
+	echoContent yellow "4.Trojan+TLS"
 	echoContent yellow "5.VLESS+TLS+gRPC[CDN]"
 	read -r -p "请选择[多选]，[例如:123]:" selectCustomInstallType
 	echoContent skyBlue "--------------------------------------------------------------"
