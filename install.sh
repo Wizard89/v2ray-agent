@@ -1686,6 +1686,7 @@ v2rayVersionManageMenu() {
 	echoContent yellow "3.关闭v2ray-core"
 	echoContent yellow "4.打开v2ray-core"
 	echoContent yellow "5.重启v2ray-core"
+	echoContent yellow "6.更新geosite、geoip"
 	echoContent red "=============================================================="
 	read -r -p "请选择:" selectV2RayType
 	if [[ "${selectV2RayType}" == "1" ]]; then
@@ -1712,6 +1713,8 @@ v2rayVersionManageMenu() {
 		handleV2Ray start
 	elif [[ "${selectV2RayType}" == "5" ]]; then
 		reloadCore
+	elif [[ "${selectXrayType}" == "6" ]]; then
+        updateGeoSite	
 	fi
 }
 
@@ -1730,6 +1733,7 @@ xrayVersionManageMenu() {
 	echoContent yellow "4.关闭Xray-core"
 	echoContent yellow "5.打开Xray-core"
 	echoContent yellow "6.重启Xray-core"
+	echoContent yellow "7.更新geosite、geoip"
 	echoContent red "=============================================================="
 	read -r -p "请选择:" selectXrayType
 	if [[ "${selectXrayType}" == "1" ]]; then
@@ -1760,6 +1764,8 @@ xrayVersionManageMenu() {
 		handleXray start
 	elif [[ "${selectXrayType}" == "6" ]]; then
 		reloadCore
+	elif [[ "${selectXrayType}" == "7" ]]; then
+        updateGeoSite	
 	fi
 
 }
