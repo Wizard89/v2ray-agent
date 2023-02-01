@@ -1175,7 +1175,6 @@ switchSSLType() {
 			sslType="letsencrypt"
 			;;
 		esac
-		touch /etc/v2ray-agent/tls
 		echo "${sslType}" >/etc/v2ray-agent/tls/ssl_type
 
 	fi
@@ -1225,11 +1224,15 @@ acmeInstallSSL() {
 			read -r -p "是否添加完成[y/n]:" addDNSTXTRecordStatus
 			if [[ "${addDNSTXTRecordStatus}" == "y" ]]; then
 				local txtAnswer=
-				txtAnswer=$(dig +nocmd "_acme-challenge.${dnsTLSDomain}" txt +noall +answer | awk -F "[\"]" '{print $2}')
+				txtAnswer=$(dig @1.1.1.1 +nocmd "_acme-challenge.${dnsTLSDomain}" txt +noall +answer | awk -F "[\"]" '{print $2}')
 				if echo "${txtAnswer}" | grep -q "^${txtValue}"; then
 					echoContent green " ---> TXT记录验证通过"
 					echoContent green " ---> 生成证书中"
-					sudo "$HOME/.acme.sh/acme.sh" --renew -d "*.${dnsTLSDomain}" -d "${dnsTLSDomain}" --yes-I-know-dns-manual-mode-enough-go-ahead-please --ecc --server "${sslType}" ${installSSLIPv6} 2>&1 | tee -a /etc/v2ray-agent/tls/acme.log >/dev/null
+                    if [[ -n "${installSSLIPv6}" ]]; then
+					    sudo "$HOME/.acme.sh/acme.sh" --renew -d "*.${dnsTLSDomain}" -d "${dnsTLSDomain}" --yes-I-know-dns-manual-mode-enough-go-ahead-please --ecc --server "${sslType}" ${installSSLIPv6} 2>&1 | tee -a /etc/v2ray-agent/tls/acme.log >/dev/null
+				    else
+                        sudo "$HOME/.acme.sh/acme.sh" --renew -d "*.${dnsTLSDomain}" -d "${dnsTLSDomain}" --yes-I-know-dns-manual-mode-enough-go-ahead-please --ecc --server "${sslType}" 2>&1 | tee -a /etc/v2ray-agent/tls/acme.log >/dev/null
+                    fi
 				else
 					echoContent red " ---> 验证失败，请等待1-2分钟后重新尝试"
 					acmeInstallSSL
@@ -1338,9 +1341,12 @@ installTLS() {
 
 			installTLSCount=1
 			echo
-			echoContent red " ---> TLS安装失败，正在检查80、443端口是否开放"
-			allowPort 80
-			allowPort 443
+            if [[ -z "${customPort}" ]]; then
+			    echoContent red " ---> TLS安装失败，正在检查80、443端口是否开放"
+			    allowPort 80
+			    allowPort 443
+			fi
+
 			echoContent yellow " ---> 重新尝试安装TLS证书"
 
 			if tail -n 10 /etc/v2ray-agent/tls/acme.log | grep -q "Could not validate email address as valid"; then
@@ -3700,7 +3706,9 @@ updateV2RayCDN() {
 		echoContent yellow "1.CNAME www.digitalocean.com"
 		echoContent yellow "2.CNAME www.cloudflare.com"
 		echoContent yellow "3.CNAME hostmonit.com"
-		echoContent yellow "4.手动输入"
+		echoContent yellow "4.CNAME who.int"
+		echoContent yellow "5.CNAME blog.hostmonit.com"
+		echoContent yellow "6.手动输入"
 		echoContent red "=============================================================="
 		read -r -p "请选择:" selectCDNType
 		case ${selectCDNType} in
@@ -3714,6 +3722,12 @@ updateV2RayCDN() {
 			setDomain="hostmonit.com"
 			;;
 		4)
+			setDomain="who.int"
+			;;
+		5)
+			setDomain="blog.hostmonit.com"
+			;;
+		6)
 			read -r -p "请输入想要自定义CDN IP或者域名:" setDomain
 			;;
 		esac
@@ -5436,7 +5450,7 @@ menu() {
 	echoContent red "\n=============================================================="
 	echoContent green "原作者:mack-a"
 	echoContent green "作者:Wizard89"
-	echoContent green "当前版本:v2.6.9"
+	echoContent green "当前版本:v2.6.10"
 	echoContent green "Github:https://github.com/Wizard89/v2ray-agent"
 	echoContent green "描述:八合一共存脚本\c"
 	showInstallStatus
