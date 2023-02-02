@@ -1229,7 +1229,7 @@ acmeInstallSSL() {
 					echoContent green " ---> TXT记录验证通过"
 					echoContent green " ---> 生成证书中"
                     if [[ -n "${installSSLIPv6}" ]]; then
-					    sudo "$HOME/.acme.sh/acme.sh" --renew -d "*.${dnsTLSDomain}" -d "${dnsTLSDomain}" --yes-I-know-dns-manual-mode-enough-go-ahead-please --ecc --server "${sslType}" ${installSSLIPv6} 2>&1 | tee -a /etc/v2ray-agent/tls/acme.log >/dev/null
+                        sudo "$HOME/.acme.sh/acme.sh" --renew -d "*.${dnsTLSDomain}" -d "${dnsTLSDomain}" --yes-I-know-dns-manual-mode-enough-go-ahead-please --ecc --server "${sslType}" ${installSSLIPv6} 2>&1 | tee -a /etc/v2ray-agent/tls/acme.log >/dev/null
 				    else
                         sudo "$HOME/.acme.sh/acme.sh" --renew -d "*.${dnsTLSDomain}" -d "${dnsTLSDomain}" --yes-I-know-dns-manual-mode-enough-go-ahead-please --ecc --server "${sslType}" 2>&1 | tee -a /etc/v2ray-agent/tls/acme.log >/dev/null
                     fi
@@ -5450,7 +5450,7 @@ menu() {
 	echoContent red "\n=============================================================="
 	echoContent green "原作者:mack-a"
 	echoContent green "作者:Wizard89"
-	echoContent green "当前版本:v2.6.10"
+	echoContent green "当前版本:v2.6.11"
 	echoContent green "Github:https://github.com/Wizard89/v2ray-agent"
 	echoContent green "描述:八合一共存脚本\c"
 	showInstallStatus
