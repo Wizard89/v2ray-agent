@@ -351,6 +351,10 @@ readInstallAlpn() {
 
 # 检查防火墙
 allowPort() {
+	local type=$2
+    if [[ -z ${type} ]]; then
+        type=tcp
+	fi
 	# 如果防火墙启动状态则添加相应的开放端口
 	if systemctl status netfilter-persistent 2>/dev/null | grep -q "active (exited)"; then
 		local updateFirewalldStatus=
@@ -370,9 +374,7 @@ allowPort() {
 			fi
 		fi
 
-	elif
-		systemctl status firewalld 2>/dev/null | grep -q "active (running)"
-	then
+	elif systemctl status firewalld 2>/dev/null | grep -q "active (running)"then
 		local updateFirewalldStatus=
 		if ! firewall-cmd --list-ports --permanent | grep -qw "$1/tcp"; then
 			updateFirewalldStatus=true
@@ -3107,9 +3109,11 @@ customCDNIP() {
 	echoContent yellow "\n教程地址:"
 	echoContent skyBlue "https://github.com/Wizard89/v2ray-agent/blob/master/documents/optimize_V2Ray.md"
 	echoContent red "\n如对Cloudflare优化不了解，请不要使用"
-	echoContent yellow "\n 1.移动:104.16.123.96"
-	echoContent yellow " 2.联通:www.cloudflare.com"
-	echoContent yellow " 3.电信:www.digitalocean.com"
+	echoContent yellow "\n 1.CNAME 104.16.123.96"
+	echoContent yellow " 2.CNAME www.cloudflare.com"
+	echoContent yellow " 3.CNAME www.digitalocean.com"
+	echoContent yellow " 4.CNAME who.int"
+	echoContent yellow " 5.CNAME blog.hostmonit.com"
 	echoContent skyBlue "----------------------------"
 	read -r -p "请选择[回车不使用]:" selectCloudflareType
 	case ${selectCloudflareType} in
@@ -3121,6 +3125,12 @@ customCDNIP() {
 		;;
 	3)
 		add="www.digitalocean.com"
+		;;
+	4)
+		add="who.int"
+		;;
+	5)
+		add="blog.hostmonit.com"
 		;;
 	*)
 		add="${domain}"
@@ -5480,7 +5490,7 @@ menu() {
 	echoContent red "\n=============================================================="
 	echoContent green "原作者:mack-a"
 	echoContent green "作者:Wizard89"
-	echoContent green "当前版本:v2.6.14"
+	echoContent green "当前版本:v2.6.15"
 	echoContent green "Github:https://github.com/Wizard89/v2ray-agent"
 	echoContent green "描述:八合一共存脚本\c"
 	showInstallStatus
