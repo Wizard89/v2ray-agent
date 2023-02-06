@@ -351,7 +351,7 @@ readInstallAlpn() {
 
 # 检查防火墙
 allowPort() {
-	local type=$2
+	   local type=$2
     if [[ -z ${type} ]]; then
         type=tcp
 	fi
