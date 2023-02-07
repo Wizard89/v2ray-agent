@@ -384,8 +384,8 @@ allowPort() {
 
 		if echo "${updateFirewalldStatus}" | grep -q "true"; then
 			firewall-cmd --reload
+                fi
         fi
-    fi
 }
 
 # 检查80、443端口占用情况
