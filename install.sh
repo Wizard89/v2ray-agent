@@ -358,9 +358,9 @@ allowPort() {
 	# 如果防火墙启动状态则添加相应的开放端口
 	if systemctl status netfilter-persistent 2>/dev/null | grep -q "active (exited)"; then
 		local updateFirewalldStatus=
-		if ! iptables -L | grep -q "$1(mack-a)"; then
+		if ! iptables -L | grep -q "$1(Wizard89)"; then
 			updateFirewalldStatus=true
-			iptables -I INPUT -p tcp --dport "$1" -m comment --comment "allow $1(mack-a)" -j ACCEPT
+			iptables -I INPUT -p tcp --dport "$1" -m comment --comment "allow $1(Wizard89)" -j ACCEPT
 		fi
 
 		if echo "${updateFirewalldStatus}" | grep -q "true"; then

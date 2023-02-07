@@ -39,7 +39,7 @@
 
 - 这里会全自动检查域名的IP是否正确
 
-<img src="https://raw.githubusercontent.com/mack-a/v2ray-agent/master/fodder/how_to_use/02_03.png" width=700> 
+<img src="https://raw.githubusercontent.com/Wizard89/v2ray-agent/master/fodder/how_to_use/02_03.png" width=700> 
 
 - 如提示不正确请按照步骤依次检测，如检测后确认无误请卸载脚本或者重新安装系统重新尝试
 
