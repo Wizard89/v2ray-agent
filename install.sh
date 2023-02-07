@@ -351,8 +351,8 @@ readInstallAlpn() {
 
 # 检查防火墙
 allowPort() {
-   local type=$2
-   if [[ -z ${type} ]]; then
+    local type=$2
+    if [[ -z ${type} ]]; then
         type=tcp
 	fi
 	# 如果防火墙启动状态则添加相应的开放端口
@@ -384,8 +384,8 @@ allowPort() {
 
 		if echo "${updateFirewalldStatus}" | grep -q "true"; then
 			firewall-cmd --reload
-                fi
         fi
+    fi
 }
 
 # 检查80、443端口占用情况
