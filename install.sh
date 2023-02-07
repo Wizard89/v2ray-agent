@@ -354,7 +354,7 @@ allowPort() {
     local type=$2
     if [[ -z ${type} ]]; then
         type=tcp
-	fi
+    fi
 	# 如果防火墙启动状态则添加相应的开放端口
 	if systemctl status netfilter-persistent 2>/dev/null | grep -q "active (exited)"; then
 		local updateFirewalldStatus=
@@ -374,7 +374,7 @@ allowPort() {
 			fi
 		fi
 
-	elif systemctl status firewalld 2>/dev/null | grep -q "active (running)"then
+	elif systemctl status firewalld 2>/dev/null | grep -q "active (running)"; then
 		local updateFirewalldStatus=
 		if ! firewall-cmd --list-ports --permanent | grep -qw "$1/tcp"; then
 			updateFirewalldStatus=true
