@@ -3464,10 +3464,10 @@ removeNginx302() {
 # 检查302是否成功
 checkNginx302() {
 	local domain302Status=
-	domain302Status=$(curl -s "https://${currentHost}")
+	domain302Status=$(curl -s "https://${currentHost}:${currentPort}")
 	if echo "${domain302Status}" | grep -q "302"; then
 		local domain302Result=
-		domain302Result=$(curl -L -s "https://${currentHost}")
+		domain302Result=$(curl -L -s "https://${currentHost}:${currentPort}")
 		if [[ -n "${domain302Result}" ]]; then
 			echoContent green " ---> 302重定向设置成功"
 			exit 0
@@ -5532,7 +5532,7 @@ menu() {
 	echoContent red "\n=============================================================="
 	echoContent green "原作者:mack-a"
 	echoContent green "作者:Wizard89"
-	echoContent green "当前版本:v2.6.16"
+	echoContent green "当前版本:v2.6.17"
 	echoContent green "Github:https://github.com/Wizard89/v2ray-agent"
 	echoContent green "描述:八合一共存脚本\c"
 	showInstallStatus
