@@ -451,8 +451,8 @@ readConfigHostPathUUID() {
 
 		if [[ $(echo "${fallback}" | jq -r .dest) == 31297 ]]; then
 			currentPath=$(echo "${path}" | awk -F "[w][s]" '{print $1}')
-		    #        elif [[ $(echo "${fallback}" | jq -r .dest) == 31298 ]]; then
-			#            currentPath=$(echo "${path}" | awk -F "[t][c][p]" '{print $1}')
+            #        elif [[ $(echo "${fallback}" | jq -r .dest) == 31298 ]]; then
+            #            currentPath=$(echo "${path}" | awk -F "[t][c][p]" '{print $1}')
 		elif [[ $(echo "${fallback}" | jq -r .dest) == 31299 ]]; then
 			currentPath=$(echo "${path}" | awk -F "[v][w][s]" '{print $1}')
 		fi
@@ -1420,7 +1420,7 @@ randomPathFunction() {
 
 		if [[ -z "${customPath}" ]]; then
             customPath=$(initRandomPath)                        
-			currentPath=${customPath}
+            currentPath=${customPath}
         else
             if [[ "${customPath: -2}" == "ws" ]]; then
                 echo
