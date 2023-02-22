@@ -451,8 +451,8 @@ readConfigHostPathUUID() {
 
 		if [[ $(echo "${fallback}" | jq -r .dest) == 31297 ]]; then
 			currentPath=$(echo "${path}" | awk -F "[w][s]" '{print $1}')
-		elif [[ $(echo "${fallback}" | jq -r .dest) == 31298 ]]; then
-			currentPath=$(echo "${path}" | awk -F "[t][c][p]" '{print $1}')
+		    #        elif [[ $(echo "${fallback}" | jq -r .dest) == 31298 ]]; then
+			#            currentPath=$(echo "${path}" | awk -F "[t][c][p]" '{print $1}')
 		elif [[ $(echo "${fallback}" | jq -r .dest) == 31299 ]]; then
 			currentPath=$(echo "${path}" | awk -F "[v][w][s]" '{print $1}')
 		fi
@@ -1390,6 +1390,16 @@ server {
 }
 EOF
 }
+# 初始化随机字符串
+initRandomPath() {
+    local chars="abcdefghijklmnopqrtuxyz"
+    local initCustomPath=
+    for i in {1..4}; do
+        echo "${i}" >/dev/null
+        initCustomPath+="${chars:RANDOM%${#chars}:1}"
+    done
+    customPath=${initCustomPath}
+}
 
 # 自定义/随机路径
 randomPathFunction() {
@@ -1409,13 +1419,17 @@ randomPathFunction() {
 		read -r -p '路径:' customPath
 
 		if [[ -z "${customPath}" ]]; then
-			customPath=$(head -n 50 /dev/urandom | sed 's/[^a-z]//g' | strings -n 4 | tr '[:upper:]' '[:lower:]' | head -1)
-			currentPath=${customPath:0:4}
-			customPath=${currentPath}
-		else
+            customPath=$(initRandomPath)                        
 			currentPath=${customPath}
+        else
+            if [[ "${customPath: -2}" == "ws" ]]; then
+                echo
+                echoContent red " ---> 自定义path结尾不可用ws结尾，否则无法区分分流路径"
+                randomPathFunction "$1"
+            else
+                currentPath=${customPath}
+            fi			
 		fi
-
 	fi
 	echoContent yellow "\n path:${currentPath}"
 	echoContent skyBlue "\n----------------------------"
@@ -5532,7 +5546,7 @@ menu() {
 	echoContent red "\n=============================================================="
 	echoContent green "原作者:mack-a"
 	echoContent green "作者:Wizard89"
-	echoContent green "当前版本:v2.6.17"
+	echoContent green "当前版本:v2.6.18"
 	echoContent green "Github:https://github.com/Wizard89/v2ray-agent"
 	echoContent green "描述:八合一共存脚本\c"
 	showInstallStatus
