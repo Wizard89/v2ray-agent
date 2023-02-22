@@ -450,9 +450,9 @@ readConfigHostPathUUID() {
 		path=$(echo "${fallback}" | jq -r .path | awk -F "[/]" '{print $2}')
 
 		if [[ $(echo "${fallback}" | jq -r .dest) == 31297 ]]; then
-			currentPath=$(echo "${path}" | awk -F "[w][s]" '{print $1}')
-            #        elif [[ $(echo "${fallback}" | jq -r .dest) == 31298 ]]; then
-            #            currentPath=$(echo "${path}" | awk -F "[t][c][p]" '{print $1}')
+		    currentPath=$(echo "${path}" | awk -F "[w][s]" '{print $1}')
+                    #        elif [[ $(echo "${fallback}" | jq -r .dest) == 31298 ]]; then
+                    #            currentPath=$(echo "${path}" | awk -F "[t][c][p]" '{print $1}')
 		elif [[ $(echo "${fallback}" | jq -r .dest) == 31299 ]]; then
 			currentPath=$(echo "${path}" | awk -F "[v][w][s]" '{print $1}')
 		fi
@@ -1419,16 +1419,16 @@ randomPathFunction() {
 		read -r -p '路径:' customPath
 
 		if [[ -z "${customPath}" ]]; then
-            customPath=$(initRandomPath)                        
-            currentPath=${customPath}
-        else
-            if [[ "${customPath: -2}" == "ws" ]]; then
-                echo
-                echoContent red " ---> 自定义path结尾不可用ws结尾，否则无法区分分流路径"
-                randomPathFunction "$1"
-            else
-                currentPath=${customPath}
-            fi			
+                    customPath=$(initRandomPath)                        
+                    currentPath=${customPath}
+                else
+                    if [[ "${customPath: -2}" == "ws" ]]; then
+                        echo
+                        echoContent red " ---> 自定义path结尾不可用ws结尾，否则无法区分分流路径"
+                        randomPathFunction "$1"
+                    else
+                        currentPath=${customPath}
+                    fi			
 		fi
 	fi
 	echoContent yellow "\n path:${currentPath}"
