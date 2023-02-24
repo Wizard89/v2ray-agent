@@ -3075,7 +3075,7 @@ EOF
      {
         "id": "${uuid}",
         "add":"${add}",
-        "flow":"xtls-rprx-vision,none",
+        "flow":"xtls-rprx-vision",
         "email": "default_VLESS_TCP/XTLS"
       }
     ],
@@ -3337,8 +3337,7 @@ showAccounts() {
 			done
 
 		else
-			echoContent skyBlue "===================== VLESS TCP TLS/XTLS-vision======================\n"
-            echoContent red "\n --->如客户端不支持vision会使用默认的VLESS TCP TLS，vision可以有效规避端口封禁，非vision则没有此功能，请确认后再使用"			
+			echoContent skyBlue "===================== VLESS TCP TLS/XTLS-vision======================\n"			
 			jq .inbounds[0].settings.clients ${configPath}02_VLESS_TCP_inbounds.json | jq -c '.[]' | while read -r user; do
 				local email=
 				email=$(echo "${user}" | jq -r .email)
@@ -3932,7 +3931,7 @@ addUser() {
 		fi
 
 		#	兼容v2ray-core
-		users="{\"id\":\"${uuid}\",\"flow\":\"xtls-rprx-vision,none\",\"email\":\"${email}\",\"alterId\":0}"
+		users="{\"id\":\"${uuid}\",\"flow\":\"xtls-rprx-vision\",\"email\":\"${email}\",\"alterId\":0}"
 
 		if [[ "${coreInstallType}" == "2" ]]; then
 			users="{\"id\":\"${uuid}\",\"email\":\"${email}\",\"alterId\":0}"
@@ -3959,14 +3958,14 @@ addUser() {
 		if echo ${currentInstallProtocolType} | grep -q 1; then
 			local vlessUsers="${users//\,\"alterId\":0/}"
 			vlessUsers="${vlessUsers//${email}/${email}_VLESS_TCP}"
-			vlessUsers="${vlessUsers//\"flow\":\"xtls-rprx-vision,none\"\,/}"
+			vlessUsers="${vlessUsers//\"flow\":\"xtls-rprx-vision\"\,/}"
 			local vlessWsResult
 			vlessWsResult=$(jq -r ".inbounds[0].settings.clients += [${vlessUsers}]" ${configPath}03_VLESS_WS_inbounds.json)
 			echo "${vlessWsResult}" | jq . >${configPath}03_VLESS_WS_inbounds.json
 		fi
 
 		if echo ${currentInstallProtocolType} | grep -q 2; then
-			local trojangRPCUsers="${users//\"flow\":\"xtls-rprx-vision,none\"\,/}"
+			local trojangRPCUsers="${users//\"flow\":\"xtls-rprx-vision\"\,/}"
 			trojangRPCUsers="${trojangRPCUsers//${email}/${email}_Trojan_gRPC}"
 			trojangRPCUsers="${trojangRPCUsers//\,\"alterId\":0/}"
 			trojangRPCUsers=${trojangRPCUsers//"id"/"password"}
@@ -3977,7 +3976,7 @@ addUser() {
 		fi
 
 		if echo ${currentInstallProtocolType} | grep -q 3; then
-			local vmessUsers="${users//\"flow\":\"xtls-rprx-vision,none\"\,/}"
+			local vmessUsers="${users//\"flow\":\"xtls-rprx-vision\"\,/}"
             vmessUsers="${vmessUsers//${email}/${email}_VMess_TCP}"
 			local vmessWsResult
 			vmessWsResult=$(jq -r ".inbounds[0].settings.clients += [${vmessUsers}]" ${configPath}05_VMess_WS_inbounds.json)
@@ -3985,7 +3984,7 @@ addUser() {
 		fi
 
 		if echo ${currentInstallProtocolType} | grep -q 5; then
-			local vlessGRPCUsers="${users//\"flow\":\"xtls-rprx-vision,none\"\,/}"
+			local vlessGRPCUsers="${users//\"flow\":\"xtls-rprx-vision\"\,/}"
 			vlessGRPCUsers="${vlessGRPCUsers//\,\"alterId\":0/}"
             vlessGRPCUsers="${vlessGRPCUsers//${email}/${email}_VLESS_gRPC}"
 			local vlessGRPCResult
@@ -3994,7 +3993,7 @@ addUser() {
 		fi
 
 		if echo ${currentInstallProtocolType} | grep -q 4; then
-			local trojanUsers="${users//\"flow\":\"xtls-rprx-vision,none\"\,/}"
+			local trojanUsers="${users//\"flow\":\"xtls-rprx-vision\"\,/}"
 			trojanUsers="${trojanUsers//id/password}"
 			trojanUsers="${trojanUsers//\,\"alterId\":0/}"
             trojanUsers="${trojanUsers//${email}/${email}_Trojan_TCP}"
@@ -5546,7 +5545,7 @@ menu() {
 	echoContent red "\n=============================================================="
 	echoContent green "原作者:mack-a"
 	echoContent green "作者:Wizard89"
-	echoContent green "当前版本:v2.6.18"
+	echoContent green "当前版本:v2.6.19"
 	echoContent green "Github:https://github.com/Wizard89/v2ray-agent"
 	echoContent green "描述:八合一共存脚本\c"
 	showInstallStatus
