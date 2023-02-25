@@ -1806,8 +1806,8 @@ updateGeoSite() {
     version=$(curl -s https://api.github.com/repos/Loyalsoldier/v2ray-rules-dat/releases | jq -r '.[]|.tag_name' | head -1)
     echoContent skyBlue "------------------------Version-------------------------------"
     echo "version:${version}"
-	rm ${configPath}../geo* >/dev/null
-	wget -c -q --show-progress -P ${configPath}../ "https://github.com/Loyalsoldier/v2ray-rules-dat/releases/download/${version}/geosite.dat"
+    rm ${configPath}../geo* >/dev/null
+    wget -c -q --show-progress -P ${configPath}../ "https://github.com/Loyalsoldier/v2ray-rules-dat/releases/download/${version}/geosite.dat"
     wget -c -q --show-progress -P ${configPath}../ "https://github.com/Loyalsoldier/v2ray-rules-dat/releases/download/${version}/geoip.dat"
     reloadCore
     echoContent green " ---> 更新完毕"
