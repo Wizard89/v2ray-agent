@@ -3557,15 +3557,12 @@ updateNginxBlog() {
 		fi
 	fi
 	if [[ "${selectInstallNginxBlogType}" =~ ^[1-9]$ ]]; then
-		rm -rf /usr/share/nginx/*
-		if wget --help | grep -q show-progress; then
-			wget -c -q --show-progress -P /usr/share/nginx "https://raw.githubusercontent.com/Wizard89/v2ray-agent/master/fodder/blog/unable/html${selectInstallNginxBlogType}.zip" >/dev/null
-		else
-			wget -c -P /usr/share/nginx "https://raw.githubusercontent.com/Wizard89/v2ray-agent/master/fodder/blog/unable/html${selectInstallNginxBlogType}.zip" >/dev/null
-		fi
+	    rm -rf "${nginxStaticPath}"
 
-		unzip -o "${nginxStaticPath}${selectInstallNginxBlogType}.zip" -d "${nginxStaticPath}" >/dev/null
-		rm -f "${nginxStaticPath}${selectInstallNginxBlogType}.zip*"
+		wget -q -P "${nginxStaticPath}" "https://raw.githubusercontent.com/Wizard89/v2ray-agent/master/fodder/blog/unable/html${selectInstallNginxBlogType}.zip" >/dev/null
+
+		unzip -o "${nginxStaticPath}html${selectInstallNginxBlogType}.zip" -d "${nginxStaticPath}" >/dev/null
+		rm -f "${nginxStaticPath}html${selectInstallNginxBlogType}.zip*"
 		echoContent green " ---> 更换伪站成功"
 	else
 		echoContent red " ---> 选择错误，请重新选择"
@@ -5589,7 +5586,7 @@ menu() {
 	echoContent red "\n=============================================================="
 	echoContent green "原作者：mack-a"
 	echoContent green "作者：Wizard89"
-	echoContent green "当前版本：v2.6.24"
+	echoContent green "当前版本：v2.6.25"
 	echoContent green "Github：https://github.com/Wizard89/v2ray-agent"
 	echoContent green "描述：八合一共存脚本\c"
 	showInstallStatus
