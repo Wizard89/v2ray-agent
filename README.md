@@ -13,6 +13,14 @@
 
 * * *
 
+# 说明 :
+
+- 只是搬运和同步更新大佬脚本
+- 只测试自用脚本
+- 不负责维护脚本！
+
+* * *
+
 # 目录
 
 - [1.脚本安装](#1vlesstcptlsvlesswstlsvmesstcptlsvmesswstlstrojan-伪装站点-八合一共存脚本)
@@ -96,7 +104,7 @@ wget -P /root -N --no-check-certificate "https://raw.githubusercontent.com/Wizar
 
 # 版权
 
-- 八合一脚本原作者：[mack-a](https://github.com/mack-a)
+- 八合一脚本作者：[mack-a](https://github.com/mack-a)
 - [Wizard](https://github.com/Wizard89)
 - 以及本项目的所有贡献者
 
