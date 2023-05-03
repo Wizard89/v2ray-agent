@@ -86,6 +86,7 @@ checkCPUVendor() {
 				hysteriaCoreCPUVendor="hysteria-linux-amd64"
 				;;
 			'armv8' | 'aarch64')
+			    cpuVendor="arm"
 				xrayCoreCPUVendor="Xray-linux-arm64-v8a"
 				v2rayCoreCPUVendor="v2ray-linux-arm64-v8a"
 				hysteriaCoreCPUVendor="hysteria-linux-arm64"
@@ -114,6 +115,7 @@ initVar() {
 	xrayCoreCPUVendor=""
 	v2rayCoreCPUVendor=""
 	hysteriaCoreCPUVendor=""
+	cpuVendor=""
 
 	# 域名
 	domain=
@@ -828,6 +830,11 @@ EOF
 
 # 安装warp
 installWarp() {
+	if [[ "${cpuVendor}" == "arm" ]]; then
+        echoContent red " ---> 官方WARP客户端不支持ARM架构"
+        exit 0
+    fi
+
 	${installType} gnupg2 -y >/dev/null 2>&1
 	if [[ "${release}" == "debian" ]]; then
 		curl -s https://pkg.cloudflareclient.com/pubkey.gpg | sudo apt-key add - >/dev/null 2>&1
@@ -857,12 +864,46 @@ installWarp() {
 	warp-cli --accept-tos connect
 	warp-cli --accept-tos enable-always-on
 
-	#	if [[]];then
-	#	fi
-	# todo curl --socks5 127.0.0.1:31303 https://www.cloudflare.com/cdn-cgi/trace
-	# systemctl daemon-reload
-	# systemctl enable cloudflare-warp
+    local warpStatus=
+    warpStatus=$(curl -s --socks5 127.0.0.1:31303 https://www.cloudflare.com/cdn-cgi/trace | grep "warp" | cut -d "=" -f 2)
+
+    if [[ "${warpStatus}" == "on" ]]; then
+        echoContent green " ---> WARP启动成功"
+    fi
 }
+
+# 检查端口实际开放状态
+checkPortOpen() {
+    local port=$1
+    local domain=$2
+    local checkPortOpenResult=
+
+    allowPort 80
+
+    # 初始化nginx配置
+    touch ${nginxConfigPath}checkPortOpen.conf
+    cat <<EOF >${nginxConfigPath}alone.conf
+    server {
+        listen ${port};
+        listen [::]:${port};
+        server_name ${domain};
+        location /checkPort {
+            return 200 'fjkvymb6len';
+        }
+    }
+EOF
+    handleNginx start
+    # 检查域名+端口的开放
+
+    checkPortOpenResult=$(curl -s -m 2 "http://${domain}:${port}/checkPort")
+
+    if [[ "${checkPortOpenResult}" == "fjkvymb6len" ]]; then
+        echoContent green " ---> 检测到80端口已开放"
+        isPortOpen80=true
+    fi
+    rm "${nginxConfigPath}checkPortOpen.conf"
+}
+
 # 初始化Nginx申请证书配置
 initTLSNginxConfig() {
 	handleNginx stop
@@ -5586,7 +5627,7 @@ menu() {
 	echoContent red "\n=============================================================="
 	echoContent green "原作者：mack-a"
 	echoContent green "作者：Wizard89"
-	echoContent green "当前版本：v2.6.25"
+	echoContent green "当前版本：v2.6.26"
 	echoContent green "Github：https://github.com/Wizard89/v2ray-agent"
 	echoContent green "描述：八合一共存脚本\c"
 	showInstallStatus
