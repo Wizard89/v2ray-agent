@@ -2521,39 +2521,39 @@ EOF
 
 # 初始化V2Ray 配置文件
 initV2RayConfig() {
-	echoContent skyBlue "\n进度 $2/${totalProgress} : 初始化V2Ray配置"
-	echo
+    echoContent skyBlue "\n进度 $2/${totalProgress} : 初始化V2Ray配置"
+    echo
 
-	read -r -p "是否自定义UUID ？[y/n]:" customUUIDStatus
-	echo
-	if [[ "${customUUIDStatus}" == "y" ]]; then
-		read -r -p "请输入合法的UUID:" currentCustomUUID
-		if [[ -n "${currentCustomUUID}" ]]; then
-			uuid=${currentCustomUUID}
-		fi
-	fi
-	local addClientsStatus=
-	if [[ -n "${currentUUID}" && -z "${uuid}" ]]; then
-		read -r -p "读取到上次安装记录，是否使用上次安装时的UUID ？[y/n]:" historyUUIDStatus
-		if [[ "${historyUUIDStatus}" == "y" ]]; then
-			uuid=${currentUUID}
-			addClientsStatus=true
-		else
-			uuid=$(/etc/v2ray-agent/v2ray/v2ctl uuid)
-		fi
-	elif [[ -z "${uuid}" ]]; then
-		uuid=$(/etc/v2ray-agent/v2ray/v2ctl uuid)
-	fi
+    read -r -p "是否自定义UUID ？[y/n]:" customUUIDStatus
+    echo
+    if [[ "${customUUIDStatus}" == "y" ]]; then
+        read -r -p "请输入合法的UUID:" currentCustomUUID
+        if [[ -n "${currentCustomUUID}" ]]; then
+            uuid=${currentCustomUUID}
+        fi
+    fi
+    local addClientsStatus=
+    if [[ -n "${currentUUID}" && -z "${uuid}" ]]; then
+        read -r -p "读取到上次安装记录，是否使用上次安装时的UUID ？[y/n]:" historyUUIDStatus
+        if [[ "${historyUUIDStatus}" == "y" ]]; then
+            uuid=${currentUUID}
+            addClientsStatus=true
+        else
+            uuid=$(/etc/v2ray-agent/v2ray/v2ctl uuid)
+        fi
+    elif [[ -z "${uuid}" ]]; then
+        uuid=$(/etc/v2ray-agent/v2ray/v2ctl uuid)
+    fi
 
-	if [[ -z "${uuid}" ]]; then
-		addClientsStatus=
-		echoContent red "\n ---> uuid读取错误，重新生成"
-		uuid=$(/etc/v2ray-agent/v2ray/v2ctl uuid)
-	fi
+    if [[ -z "${uuid}" ]]; then
+        addClientsStatus=
+        echoContent red "\n ---> uuid读取错误，重新生成"
+        uuid=$(/etc/v2ray-agent/v2ray/v2ctl uuid)
+    fi
 
-	movePreviousConfig
-	# log
-	cat <<EOF >/etc/v2ray-agent/v2ray/conf/00_log.json
+    movePreviousConfig
+    # log
+    cat <<EOF >/etc/v2ray-agent/v2ray/conf/00_log.json
 {
   "log": {
     "error": "/etc/v2ray-agent/v2ray/error.log",
@@ -2561,22 +2561,22 @@ initV2RayConfig() {
   }
 }
 EOF
-	# outbounds
-	if [[ -n "${pingIPv6}" ]]; then
-		cat <<EOF >/etc/v2ray-agent/v2ray/conf/10_ipv6_outbounds.json
+    # outbounds
+    if [[ -n "${pingIPv6}" ]]; then
+        cat <<EOF >/etc/v2ray-agent/v2ray/conf/10_ipv6_outbounds.json
 {
     "outbounds": [
         {
           "protocol": "freedom",
           "settings": {},
-          "tag": "vision"
+          "tag": "direct"
         }
     ]
 }
 EOF
 
-	else
-		cat <<EOF >/etc/v2ray-agent/v2ray/conf/10_ipv4_outbounds.json
+    else
+        cat <<EOF >/etc/v2ray-agent/v2ray/conf/10_ipv4_outbounds.json
 {
     "outbounds":[
         {
@@ -2600,10 +2600,10 @@ EOF
     ]
 }
 EOF
-	fi
+    fi
 
-	# dns
-	cat <<EOF >/etc/v2ray-agent/v2ray/conf/11_dns.json
+    # dns
+    cat <<EOF >/etc/v2ray-agent/v2ray/conf/11_dns.json
 {
     "dns": {
         "servers": [
@@ -2613,17 +2613,17 @@ EOF
 }
 EOF
 
-	# VLESS_TCP_TLS
-	# 回落nginx
-	local fallbacksList='{"dest":31300,"xver":0},{"alpn":"h2","dest":31302,"xver":0}'
+    # VLESS_TCP_TLS
+    # 回落nginx
+    local fallbacksList='{"dest":31300,"xver":0},{"alpn":"h2","dest":31302,"xver":0}'
 
-	# trojan
-	if echo "${selectCustomInstallType}" | grep -q 4 || [[ "$1" == "all" ]]; then
+    # trojan
+    if echo "${selectCustomInstallType}" | grep -q 4 || [[ "$1" == "all" ]]; then
 
-		fallbacksList='{"dest":31296,"xver":1},{"alpn":"h2","dest":31302,"xver":0}'
+        fallbacksList='{"dest":31296,"xver":1},{"alpn":"h2","dest":31302,"xver":0}'
 
-		getClients "${configPath}../tmp/04_trojan_TCP_inbounds.json" "${addClientsStatus}"
-		cat <<EOF >/etc/v2ray-agent/v2ray/conf/04_trojan_TCP_inbounds.json
+        getClients "${configPath}../tmp/04_trojan_TCP_inbounds.json" "${addClientsStatus}"
+        cat <<EOF >/etc/v2ray-agent/v2ray/conf/04_trojan_TCP_inbounds.json
 {
 "inbounds":[
 	{
@@ -2653,14 +2653,14 @@ EOF
 	]
 }
 EOF
-		addClients "/etc/v2ray-agent/v2ray/conf/04_trojan_TCP_inbounds.json" "${addClientsStatus}"
-	fi
+        addClients "/etc/v2ray-agent/v2ray/conf/04_trojan_TCP_inbounds.json" "${addClientsStatus}"
+    fi
 
-	# VLESS_WS_TLS
-	if echo "${selectCustomInstallType}" | grep -q 1 || [[ "$1" == "all" ]]; then
-		fallbacksList=${fallbacksList}',{"path":"/'${customPath}'ws","dest":31297,"xver":1}'
-		getClients "${configPath}../tmp/03_VLESS_WS_inbounds.json" "${addClientsStatus}"
-		cat <<EOF >/etc/v2ray-agent/v2ray/conf/03_VLESS_WS_inbounds.json
+    # VLESS_WS_TLS
+    if echo "${selectCustomInstallType}" | grep -q 1 || [[ "$1" == "all" ]]; then
+        fallbacksList=${fallbacksList}',{"path":"/'${customPath}'ws","dest":31297,"xver":1}'
+        getClients "${configPath}../tmp/03_VLESS_WS_inbounds.json" "${addClientsStatus}"
+        cat <<EOF >/etc/v2ray-agent/v2ray/conf/03_VLESS_WS_inbounds.json
 {
 "inbounds":[
     {
@@ -2689,16 +2689,16 @@ EOF
 ]
 }
 EOF
-		addClients "/etc/v2ray-agent/v2ray/conf/03_VLESS_WS_inbounds.json" "${addClientsStatus}"
-	fi
+        addClients "/etc/v2ray-agent/v2ray/conf/03_VLESS_WS_inbounds.json" "${addClientsStatus}"
+    fi
 
-	# trojan_grpc
-	if echo "${selectCustomInstallType}" | grep -q 2 || [[ "$1" == "all" ]]; then
-		if ! echo "${selectCustomInstallType}" | grep -q 5 && [[ -n ${selectCustomInstallType} ]]; then
-			fallbacksList=${fallbacksList//31302/31304}
-		fi
-		getClients "${configPath}../tmp/04_trojan_gRPC_inbounds.json" "${addClientsStatus}"
-		cat <<EOF >/etc/v2ray-agent/v2ray/conf/04_trojan_gRPC_inbounds.json
+    # trojan_grpc
+    if echo "${selectCustomInstallType}" | grep -q 2 || [[ "$1" == "all" ]]; then
+        if ! echo "${selectCustomInstallType}" | grep -q 5 && [[ -n ${selectCustomInstallType} ]]; then
+            fallbacksList=${fallbacksList//31302/31304}
+        fi
+        getClients "${configPath}../tmp/04_trojan_gRPC_inbounds.json" "${addClientsStatus}"
+        cat <<EOF >/etc/v2ray-agent/v2ray/conf/04_trojan_gRPC_inbounds.json
 {
     "inbounds": [
         {
@@ -2729,16 +2729,16 @@ EOF
     ]
 }
 EOF
-		addClients "/etc/v2ray-agent/v2ray/conf/04_trojan_gRPC_inbounds.json" "${addClientsStatus}"
-	fi
+        addClients "/etc/v2ray-agent/v2ray/conf/04_trojan_gRPC_inbounds.json" "${addClientsStatus}"
+    fi
 
-	# VMess_WS
-	if echo "${selectCustomInstallType}" | grep -q 3 || [[ "$1" == "all" ]]; then
-		fallbacksList=${fallbacksList}',{"path":"/'${customPath}'vws","dest":31299,"xver":1}'
+    # VMess_WS
+    if echo "${selectCustomInstallType}" | grep -q 3 || [[ "$1" == "all" ]]; then
+        fallbacksList=${fallbacksList}',{"path":"/'${customPath}'vws","dest":31299,"xver":1}'
 
-		getClients "${configPath}../tmp/05_VMess_WS_inbounds.json" "${addClientsStatus}"
+        getClients "${configPath}../tmp/05_VMess_WS_inbounds.json" "${addClientsStatus}"
 
-		cat <<EOF >/etc/v2ray-agent/v2ray/conf/05_VMess_WS_inbounds.json
+        cat <<EOF >/etc/v2ray-agent/v2ray/conf/05_VMess_WS_inbounds.json
 {
 "inbounds":[
 {
@@ -2768,12 +2768,12 @@ EOF
 ]
 }
 EOF
-		addClients "/etc/v2ray-agent/v2ray/conf/05_VMess_WS_inbounds.json" "${addClientsStatus}"
-	fi
+        addClients "/etc/v2ray-agent/v2ray/conf/05_VMess_WS_inbounds.json" "${addClientsStatus}"
+    fi
 
-	if echo "${selectCustomInstallType}" | grep -q 5 || [[ "$1" == "all" ]]; then
-		getClients "${configPath}../tmp/06_VLESS_gRPC_inbounds.json" "${addClientsStatus}"
-		cat <<EOF >/etc/v2ray-agent/v2ray/conf/06_VLESS_gRPC_inbounds.json
+    if echo "${selectCustomInstallType}" | grep -q 5 || [[ "$1" == "all" ]]; then
+        getClients "${configPath}../tmp/06_VLESS_gRPC_inbounds.json" "${addClientsStatus}"
+        cat <<EOF >/etc/v2ray-agent/v2ray/conf/06_VLESS_gRPC_inbounds.json
 {
     "inbounds":[
     {
@@ -2801,17 +2801,17 @@ EOF
 ]
 }
 EOF
-		addClients "/etc/v2ray-agent/v2ray/conf/06_VLESS_gRPC_inbounds.json" "${addClientsStatus}"
-	fi
+        addClients "/etc/v2ray-agent/v2ray/conf/06_VLESS_gRPC_inbounds.json" "${addClientsStatus}"
+    fi
 
-	# VLESS_TCP
-	getClients "${configPath}../tmp/02_VLESS_TCP_inbounds.json" "${addClientsStatus}"
-	local defaultPort=443
-	if [[ -n "${customPort}" ]]; then
-		defaultPort=${customPort}
-	fi
+    # VLESS_TCP
+    getClients "${configPath}../tmp/02_VLESS_TCP_inbounds.json" "${addClientsStatus}"
+    local defaultPort=443
+    if [[ -n "${customPort}" ]]; then
+        defaultPort=${customPort}
+    fi
 
-	cat <<EOF >/etc/v2ray-agent/v2ray/conf/02_VLESS_TCP_inbounds.json
+    cat <<EOF >/etc/v2ray-agent/v2ray/conf/02_VLESS_TCP_inbounds.json
 {
 "inbounds":[
 {
@@ -2854,71 +2854,71 @@ EOF
 ]
 }
 EOF
-	addClients "/etc/v2ray-agent/v2ray/conf/02_VLESS_TCP_inbounds.json" "${addClientsStatus}"
+    addClients "/etc/v2ray-agent/v2ray/conf/02_VLESS_TCP_inbounds.json" "${addClientsStatus}"
 
 }
 
 # 初始化Xray Trojan XTLS 配置文件
 initXrayFrontingConfig() {
-	echoContent red " ---> Trojan暂不支持 xtls-rprx-vision"
+    echoContent red " ---> Trojan暂不支持 xtls-rprx-vision"
     exit 0
-	if [[ -z "${configPath}" ]]; then
-		echoContent red " ---> 未安装，请使用脚本安装"
-		menu
-		exit 0
-	fi
-	if [[ "${coreInstallType}" != "1" ]]; then
-		echoContent red " ---> 未安装可用类型"
-	fi
-	local xtlsType=
-	if echo ${currentInstallProtocolType} | grep -q trojan; then
-		xtlsType=VLESS
-	else
-		xtlsType=Trojan
+    if [[ -z "${configPath}" ]]; then
+        echoContent red " ---> 未安装，请使用脚本安装"
+        menu
+        exit 0
+    fi
+    if [[ "${coreInstallType}" != "1" ]]; then
+        echoContent red " ---> 未安装可用类型"
+    fi
+    local xtlsType=
+    if echo ${currentInstallProtocolType} | grep -q trojan; then
+        xtlsType=VLESS
+    else
+        xtlsType=Trojan
 
-	fi
+    fi
 
-	echoContent skyBlue "\n功能 1/${totalProgress} : 前置切换为${xtlsType}"
-	echoContent red "\n=============================================================="
-	echoContent yellow "# 注意事项\n"
-	echoContent yellow "会将前置替换为${xtlsType}"
-	echoContent yellow "如果前置是Trojan，查看账号时则会出现两个Trojan协议的节点，有一个不可用xtls"
-	echoContent yellow "再次执行可切换至上一次的前置\n"
+    echoContent skyBlue "\n功能 1/${totalProgress} : 前置切换为${xtlsType}"
+    echoContent red "\n=============================================================="
+    echoContent yellow "# 注意事项\n"
+    echoContent yellow "会将前置替换为${xtlsType}"
+    echoContent yellow "如果前置是Trojan，查看账号时则会出现两个Trojan协议的节点，有一个不可用xtls"
+    echoContent yellow "再次执行可切换至上一次的前置\n"
 
-	echoContent yellow "1.切换至${xtlsType}"
-	echoContent red "=============================================================="
-	read -r -p "请选择:" selectType
-	if [[ "${selectType}" == "1" ]]; then
+    echoContent yellow "1.切换至${xtlsType}"
+    echoContent red "=============================================================="
+    read -r -p "请选择:" selectType
+    if [[ "${selectType}" == "1" ]]; then
 
-		if [[ "${xtlsType}" == "Trojan" ]]; then
+        if [[ "${xtlsType}" == "Trojan" ]]; then
 
-			local VLESSConfig
-			VLESSConfig=$(cat ${configPath}${frontingType}.json)
-			VLESSConfig=${VLESSConfig//"id"/"password"}
-			VLESSConfig=${VLESSConfig//VLESSTCP/TrojanTCPXTLS}
-			VLESSConfig=${VLESSConfig//VLESS/Trojan}
-			VLESSConfig=${VLESSConfig//"vless"/"trojan"}
-			VLESSConfig=${VLESSConfig//"id"/"password"}
+            local VLESSConfig
+            VLESSConfig=$(cat ${configPath}${frontingType}.json)
+            VLESSConfig=${VLESSConfig//"id"/"password"}
+            VLESSConfig=${VLESSConfig//VLESSTCP/TrojanTCPXTLS}
+            VLESSConfig=${VLESSConfig//VLESS/Trojan}
+            VLESSConfig=${VLESSConfig//"vless"/"trojan"}
+            VLESSConfig=${VLESSConfig//"id"/"password"}
 
-			echo "${VLESSConfig}" | jq . >${configPath}02_trojan_TCP_inbounds.json
-			rm ${configPath}${frontingType}.json
-		elif [[ "${xtlsType}" == "VLESS" ]]; then
+            echo "${VLESSConfig}" | jq . >${configPath}02_trojan_TCP_inbounds.json
+            rm ${configPath}${frontingType}.json
+        elif [[ "${xtlsType}" == "VLESS" ]]; then
 
-			local VLESSConfig
-			VLESSConfig=$(cat ${configPath}02_trojan_TCP_inbounds.json)
-			VLESSConfig=${VLESSConfig//"password"/"id"}
-			VLESSConfig=${VLESSConfig//TrojanTCPXTLS/VLESSTCP}
-			VLESSConfig=${VLESSConfig//Trojan/VLESS}
-			VLESSConfig=${VLESSConfig//"trojan"/"vless"}
-			VLESSConfig=${VLESSConfig//"password"/"id"}
+            local VLESSConfig
+            VLESSConfig=$(cat ${configPath}02_trojan_TCP_inbounds.json)
+            VLESSConfig=${VLESSConfig//"password"/"id"}
+            VLESSConfig=${VLESSConfig//TrojanTCPXTLS/VLESSTCP}
+            VLESSConfig=${VLESSConfig//Trojan/VLESS}
+            VLESSConfig=${VLESSConfig//"trojan"/"vless"}
+            VLESSConfig=${VLESSConfig//"password"/"id"}
 
-			echo "${VLESSConfig}" | jq . >${configPath}02_VLESS_TCP_inbounds.json
-			rm ${configPath}02_trojan_TCP_inbounds.json
-		fi
-		reloadCore
-	fi
+            echo "${VLESSConfig}" | jq . >${configPath}02_VLESS_TCP_inbounds.json
+            rm ${configPath}02_trojan_TCP_inbounds.json
+        fi
+        reloadCore
+    fi
 
-	exit 0
+    exit 0
 }
 
 # 移动上次配置文件至临时文件
@@ -2939,46 +2939,45 @@ movePreviousConfig() {
 
 # 初始化Xray 配置文件
 initXrayConfig() {
-	echoContent skyBlue "\n进度 $2/${totalProgress} : 初始化Xray配置"
-	echo
-	local uuid=
-	local addClientsStatus=
-	if [[ -n "${currentUUID}" ]]; then
-		read -r -p "读取到上次安装记录，是否使用上次安装时的UUID ？[y/n]:" historyUUIDStatus
-		if [[ "${historyUUIDStatus}" == "y" ]]; then
-			addClientsStatus=true
-			uuid=${currentUUID}
-			echoContent green "\n ---> 使用成功"
-		fi
-	fi
+    echoContent skyBlue "\n进度 $2/${totalProgress} : 初始化Xray配置"
+    echo
+    local uuid=
+    local addClientsStatus=
+    if [[ -n "${currentUUID}" ]]; then
+        read -r -p "读取到上次用户配置，是否使用上次安装的配置 ？[y/n]:" historyUUIDStatus
+        if [[ "${historyUUIDStatus}" == "y" ]]; then
+            addClientsStatus=true
+            echoContent green "\n ---> 使用成功"
+        fi
+    fi
 
     if [[ -z "${addClientsStatus}" ]]; then
-		echoContent yellow "请输入自定义UUID[需合法]，[回车]随机UUID"
-		read -r -p 'UUID:' customUUID
+        echoContent yellow "请输入自定义UUID[需合法]，[回车]随机UUID"
+        read -r -p 'UUID:' customUUID
 
-		if [[ -n ${customUUID} ]]; then
-			uuid=${customUUID}
-		else
-			uuid=$(/etc/v2ray-agent/xray/xray uuid)
-		fi
+        if [[ -n ${customUUID} ]]; then
+            uuid=${customUUID}
+        else
+            uuid=$(/etc/v2ray-agent/xray/xray uuid)
+        fi
 
-	fi
+    fi
 
     if [[ -z "${addClientsStatus}" && -z "${uuid}" ]]; then
-		addClientsStatus=
-		echoContent red "\n ---> uuid读取错误，重新生成"
-		uuid=$(/etc/v2ray-agent/xray/xray uuid)
-	fi
+        addClientsStatus=
+        echoContent red "\n ---> uuid读取错误，随机生成"
+        uuid=$(/etc/v2ray-agent/xray/xray uuid)
+    fi
 
     if [[ -n "${uuid}" ]]; then
         currentClients='[{"id":"'${uuid}'","add":"'${add}'","flow":"xtls-rprx-vision","email":"'${uuid}'-VLESS_TCP/TLS_Vision"}]'
-	    echoContent yellow "\n ${uuid}"
-	fi
+        echoContent yellow "\n ${uuid}"
+    fi
 
-	# log
+    # log
     if [[ ! -f "/etc/v2ray-agent/xray/conf/00_log.json" ]]; then
 
-	    cat <<EOF >/etc/v2ray-agent/xray/conf/00_log.json
+        cat <<EOF >/etc/v2ray-agent/xray/conf/00_log.json
 {
   "log": {
     "error": "/etc/v2ray-agent/xray/error.log",
@@ -3003,23 +3002,24 @@ EOF
 }
 EOF
     fi
-	# outbounds
-	if [[ ! -f "/etc/v2ray-agent/xray/conf/10_ipv6_outbounds.json" ]]; then
-	    if [[ -n "${pingIPv6}" ]]; then
-		cat <<EOF >/etc/v2ray-agent/xray/conf/10_ipv6_outbounds.json
+
+    # outbounds
+    if [[ ! -f "/etc/v2ray-agent/xray/conf/10_ipv6_outbounds.json" ]]; then
+        if [[ -n "${pingIPv6}" ]]; then
+            cat <<EOF >/etc/v2ray-agent/xray/conf/10_ipv6_outbounds.json
 {
     "outbounds": [
         {
           "protocol": "freedom",
           "settings": {},
-          "tag": "vision"
+          "tag": "direct"
         }
     ]
 }
 EOF
 
-	else
-		cat <<EOF >/etc/v2ray-agent/xray/conf/10_ipv4_outbounds.json
+        else
+            cat <<EOF >/etc/v2ray-agent/xray/conf/10_ipv4_outbounds.json
 {
     "outbounds":[
         {
@@ -3036,11 +3036,11 @@ EOF
             },
             "tag":"IPv6-out"
         },
-		{
-			"protocol":"freedom",
-			"settings": {},
-			"tag":"direct"
-		},
+        {
+            "protocol":"freedom",
+            "settings": {},
+            "tag":"direct"
+        },
         {
             "protocol":"blackhole",
             "tag":"blackhole-out"
@@ -3048,11 +3048,12 @@ EOF
     ]
 }
 EOF
-	fi
+        fi
+    fi
 
-	# dns
+    # dns
     if [[ ! -f "/etc/v2ray-agent/xray/conf/11_dns.json" ]]; then
-	cat <<EOF >/etc/v2ray-agent/xray/conf/11_dns.json
+        cat <<EOF >/etc/v2ray-agent/xray/conf/11_dns.json
 {
     "dns": {
         "servers": [
@@ -3061,34 +3062,33 @@ EOF
   }
 }
 EOF
+    fi
     # routing
     if [[ ! -f "/etc/v2ray-agent/xray/conf/09_routing.json" ]]; then
-	    cat <<EOF >/etc/v2ray-agent/xray/conf/09_routing.json
+        cat <<EOF >/etc/v2ray-agent/xray/conf/09_routing.json
 {
   "routing": {
-	"rules": [
-	  {
-		"type": "field",
-		"domain": [
+    "rules": [
+      {
+        "type": "field",
+        "domain": [
           "domain:gstatic.com"
-		],
-		"outboundTag": "direct"
+        ],
+        "outboundTag": "direct"
       }
     ]
   }
 }
 EOF
     fi
-	# VLESS_TCP_TLS_Vision
-	# 回落nginx
-	local fallbacksList='{"dest":31300,"xver":0},{"alpn":"h2","dest":31302,"xver":0}'
+    # VLESS_TCP_TLS_Vision
+    # 回落nginx
+    local fallbacksList='{"dest":31300,"xver":0},{"alpn":"h2","dest":31302,"xver":0}'
 
-	# trojan
-	if echo "${selectCustomInstallType}" | grep -q 4 || [[ "$1" == "all" ]]; then
-		fallbacksList='{"dest":31296,"xver":1},{"alpn":"h2","dest":31302,"xver":0}'
-		getClients "${configPath}../tmp/04_trojan_TCP_inbounds.json" "${addClientsStatus}"
-
-		cat <<EOF >/etc/v2ray-agent/xray/conf/04_trojan_TCP_inbounds.json
+    # trojan
+    if echo "${selectCustomInstallType}" | grep -q 4 || [[ "$1" == "all" ]]; then
+        fallbacksList='{"dest":31296,"xver":1},{"alpn":"h2","dest":31302,"xver":0}'
+        cat <<EOF >/etc/v2ray-agent/xray/conf/04_trojan_TCP_inbounds.json
 {
 "inbounds":[
 	{
@@ -3097,17 +3097,17 @@ EOF
 	  "protocol": "trojan",
 	  "tag":"trojanTCP",
 	  "settings": {
-		    "clients": $(initXrayClients 4),
-		    "fallbacks":[
-			        {"dest":"31300"}
-		    ]
+		"clients": $(initXrayClients 4),
+		"fallbacks":[
+			{"dest":"31300"}
+		]
 	  },
 	  "streamSettings": {
-		    "network": "tcp",
-		    "security": "none",
-		    "tcpSettings": {
-			        "acceptProxyProtocol": true
-		    }
+		"network": "tcp",
+		"security": "none",
+		"tcpSettings": {
+			"acceptProxyProtocol": true
+		}
 	  }
 	}
 	]
@@ -3115,12 +3115,12 @@ EOF
 EOF
     else
         rm /etc/v2ray-agent/xray/conf/04_trojan_TCP_inbounds.json >/dev/null 2>&1
-	fi
+    fi
 
-	# VLESS_WS_TLS
-	if echo "${selectCustomInstallType}" | grep -q 1 || [[ "$1" == "all" ]]; then
-		fallbacksList=${fallbacksList}',{"path":"/'${customPath}'ws","dest":31297,"xver":1}'
-		cat <<EOF >/etc/v2ray-agent/xray/conf/03_VLESS_WS_inbounds.json
+    # VLESS_WS_TLS
+    if echo "${selectCustomInstallType}" | grep -q 1 || [[ "$1" == "all" ]]; then
+        fallbacksList=${fallbacksList}',{"path":"/'${customPath}'ws","dest":31297,"xver":1}'
+        cat <<EOF >/etc/v2ray-agent/xray/conf/03_VLESS_WS_inbounds.json
 {
 "inbounds":[
     {
@@ -3146,14 +3146,14 @@ EOF
 EOF
     else
         rm /etc/v2ray-agent/xray/conf/03_VLESS_WS_inbounds.json >/dev/null 2>&1
-	fi
+    fi
 
-	# trojan_grpc
-	if echo "${selectCustomInstallType}" | grep -q 2 || [[ "$1" == "all" ]]; then
-		if ! echo "${selectCustomInstallType}" | grep -q 5 && [[ -n ${selectCustomInstallType} ]]; then
-			fallbacksList=${fallbacksList//31302/31304}
-		fi
-		cat <<EOF >/etc/v2ray-agent/xray/conf/04_trojan_gRPC_inbounds.json
+    # trojan_grpc
+    if echo "${selectCustomInstallType}" | grep -q 2 || [[ "$1" == "all" ]]; then
+        if ! echo "${selectCustomInstallType}" | grep -q 5 && [[ -n ${selectCustomInstallType} ]]; then
+            fallbacksList=${fallbacksList//31302/31304}
+        fi
+        cat <<EOF >/etc/v2ray-agent/xray/conf/04_trojan_gRPC_inbounds.json
 {
     "inbounds": [
         {
@@ -3181,12 +3181,12 @@ EOF
 EOF
     else
         rm /etc/v2ray-agent/xray/conf/04_trojan_gRPC_inbounds.json >/dev/null 2>&1
-	fi
+    fi
 
-	# VMess_WS
-	if echo "${selectCustomInstallType}" | grep -q 3 || [[ "$1" == "all" ]]; then
-		fallbacksList=${fallbacksList}',{"path":"/'${customPath}'vws","dest":31299,"xver":1}'
-		cat <<EOF >/etc/v2ray-agent/xray/conf/05_VMess_WS_inbounds.json
+    # VMess_WS
+    if echo "${selectCustomInstallType}" | grep -q 3 || [[ "$1" == "all" ]]; then
+        fallbacksList=${fallbacksList}',{"path":"/'${customPath}'vws","dest":31299,"xver":1}'
+        cat <<EOF >/etc/v2ray-agent/xray/conf/05_VMess_WS_inbounds.json
 {
 "inbounds":[
 {
@@ -3211,10 +3211,10 @@ EOF
 EOF
     else
         rm /etc/v2ray-agent/xray/conf/05_VMess_WS_inbounds.json >/dev/null 2>&1
-	fi
+    fi
 
-	if echo "${selectCustomInstallType}" | grep -q 5 || [[ "$1" == "all" ]]; then
-		cat <<EOF >/etc/v2ray-agent/xray/conf/06_VLESS_gRPC_inbounds.json
+    if echo "${selectCustomInstallType}" | grep -q 5 || [[ "$1" == "all" ]]; then
+        cat <<EOF >/etc/v2ray-agent/xray/conf/06_VLESS_gRPC_inbounds.json
 {
     "inbounds":[
     {
@@ -3238,7 +3238,7 @@ EOF
 EOF
     else
         rm /etc/v2ray-agent/xray/conf/06_VLESS_gRPC_inbounds.json >/dev/null 2>&1
-	fi
+    fi
     # VLESS Vision
     if echo "${selectCustomInstallType}" | grep -q 0 || [[ "$1" == "all" ]]; then
 
@@ -3277,53 +3277,6 @@ EOF
           }
         }
     ]
-}
-EOF
-    else
-        rm /etc/v2ray-agent/xray/conf/02_VLESS_TCP_inbounds.json >/dev/null 2>&1
-    fi
-
-	# VLESS_TCP
-	if echo "${selectCustomInstallType}" | grep -q 7 || [[ "$1" == "all" ]]; then
-
-	    cat <<EOF >/etc/v2ray-agent/xray/conf/02_VLESS_TCP_inbounds.json
-{
-  "inbounds": [
-    {
-      "port": ${realityPort},
-      "protocol": "vless",
-      "tag":"VLESSTCP",
-      "settings": {
-        "clients": $(initXrayClients 2),
-        "decryption": "none",
-        "fallbacks":[
-            {
-                "dest": "31305",
-                "xver": 1
-            }
-        ]
-      },
-      "streamSettings": {
-        "network": "tcp",
-        "security": "tls",
-        "tlsSettings": {
-        "minVersion": "1.2",
-        "alpn": [
-          "http/1.1",
-          "h2"
-      ],
-      "certificates": [
-        {
-          "certificateFile": "/etc/v2ray-agent/tls/${domain}.crt",
-          "keyFile": "/etc/v2ray-agent/tls/${domain}.key",
-          "ocspStapling": 3600,
-          "usage":"encipherment"
-        }
-      ]
-    }
-  }
-}
-]
 }
 EOF
     else
