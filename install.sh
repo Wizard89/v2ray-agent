@@ -458,6 +458,7 @@ readHysteriaConfig() {
 		hysteriaProtocol=$(jq -r .protocol <"${hysteriaConfigPath}config.json")
 	fi
 }
+
 # 检查文件目录以及path路径
 readConfigHostPathUUID() {
 	currentPath=
