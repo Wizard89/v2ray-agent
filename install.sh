@@ -3272,17 +3272,16 @@ customCDNIP() {
 }
 # 通用
 defaultBase64Code() {
-	local type=$1
-	local email=$2
-	local id=$3
+    local type=$1
+    local email=$2
+    local id=$3
     local user=
     user=$(echo "${email}" | awk -F "[-]" '{print $1}')
-	port=${currentDefaultPort}
-
+    port=${currentDefaultPort}
     if [[ "${type}" == "vlesstcp" ]]; then
 
         if [[ "${coreInstallType}" == "1" ]] && echo "${currentInstallProtocolType}" | grep -q 0; then
-		    echoContent yellow " ---> 通用格式(VLESS+TCP+TLS_Vision)"
+            echoContent yellow " ---> 通用格式(VLESS+TCP+TLS_Vision)"
             echoContent green "    vless://${id}@${currentHost}:${currentDefaultPort}?encryption=none&security=tls&fp=chrome&type=tcp&host=${currentHost}&headerType=none&sni=${currentHost}&flow=xtls-rprx-vision#${email}\n"
 
             echoContent yellow " ---> 格式化明文(VLESS+TCP+TLS_Vision)"
