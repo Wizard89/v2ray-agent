@@ -3278,6 +3278,7 @@ defaultBase64Code() {
     local user=
     user=$(echo "${email}" | awk -F "[-]" '{print $1}')
     port=${currentDefaultPort}
+
     if [[ "${type}" == "vlesstcp" ]]; then
 
         if [[ "${coreInstallType}" == "1" ]] && echo "${currentInstallProtocolType}" | grep -q 0; then
