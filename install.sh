@@ -518,6 +518,7 @@ readConfigHostPathUUID() {
             currentUUID=$(jq -r .inbounds[0].settings.clients[0].id ${configPath}${frontingType}.json)
             currentClients=$(jq -r .inbounds[0].settings.clients ${configPath}${frontingType}.json)
         fi
+	fi
 }
 
 # 状态展示
