@@ -404,7 +404,15 @@ allowPort() {
         fi
     fi
 }
-
+# 获取公网IP
+getPublicIP() {
+    local currentIP=
+    currentIP=$(curl -s -4 http://www.cloudflare.com/cdn-cgi/trace | grep "ip" | awk -F "[=]" '{print $2}')
+    if [[ -z "${currentIP}" ]]; then
+        currentIP=$(curl -s -6 http://www.cloudflare.com/cdn-cgi/trace | grep "ip" | awk -F "[=]" '{print $2}')
+    fi
+    echo "${currentIP}"
+}
 # 检查80、443端口占用情况
 checkPortUsedStatus() {
 	if lsof -i tcp:80 | grep -q LISTEN; then
@@ -468,13 +476,11 @@ readConfigHostPathUUID() {
 
 		if [[ $(echo "${fallback}" | jq -r .dest) == 31297 ]]; then
 		    currentPath=$(echo "${path}" | awk -F "[w][s]" '{print $1}')
-                    #        elif [[ $(echo "${fallback}" | jq -r .dest) == 31298 ]]; then
-                    #            currentPath=$(echo "${path}" | awk -F "[t][c][p]" '{print $1}')
 		elif [[ $(echo "${fallback}" | jq -r .dest) == 31299 ]]; then
 			currentPath=$(echo "${path}" | awk -F "[v][w][s]" '{print $1}')
 		fi
-		# 尝试读取alpn h2 Path
 
+		# 尝试读取alpn h2 Path
 		if [[ -z "${currentPath}" ]]; then
 			dest=$(jq -r -c '.inbounds[0].settings.fallbacks[]|select(.alpn)|.dest' ${configPath}${frontingType}.json | head -1)
 			if [[ "${dest}" == "31302" || "${dest}" == "31304" ]]; then
@@ -486,36 +492,30 @@ readConfigHostPathUUID() {
 				fi
 			fi
 		fi
-
-		local defaultPortFile=
-		defaultPortFile=$(find ${configPath}* | grep "default")
-
-		if [[ -n "${defaultPortFile}" ]]; then
-			currentDefaultPort=$(echo "${defaultPortFile}" | awk -F [_] '{print $4}')
-		else
-			currentDefaultPort=$(jq -r .inbounds[0].port ${configPath}${frontingType}.json)
-		fi
-
 	fi
-	if [[ "${coreInstallType}" == "1" ]]; then
-		currentHost=$(jq -r .inbounds[0].streamSettings.tlsSettings.certificates[0].certificateFile ${configPath}${frontingType}.json | awk -F '[t][l][s][/]' '{print $2}' | awk -F '[.][c][r][t]' '{print $1}')
-		currentUUID=$(jq -r .inbounds[0].settings.clients[0].id ${configPath}${frontingType}.json)
-		currentAdd=$(jq -r .inbounds[0].settings.clients[0].add ${configPath}${frontingType}.json)
-		if [[ "${currentAdd}" == "null" ]]; then
-			currentAdd=${currentHost}
-		fi
-		currentPort=$(jq .inbounds[0].port ${configPath}${frontingType}.json)
 
-    elif [[ "${coreInstallType}" == "2" ]]; then
-        currentHost=$(jq -r .inbounds[0].streamSettings.tlsSettings.certificates[0].certificateFile ${configPath}${frontingType}.json | awk -F '[t][l][s][/]' '{print $2}' | awk -F '[.][c][r][t]' '{print $1}')
-        currentAdd=$(jq -r .inbounds[0].settings.clients[0].add ${configPath}${frontingType}.json)
-		
-		if [[ "${currentAdd}" == "null" ]]; then
-            currentAdd=${currentHost}
+    if [[ "${coreInstallType}" == "1" ]]; then
+
+        # 安装
+        if [[ -n "${frontingType}" ]]; then
+            currentHost=$(jq -r .inbounds[0].streamSettings.tlsSettings.certificates[0].certificateFile ${configPath}${frontingType}.json | awk -F '[t][l][s][/]' '{print $2}' | awk -F '[.][c][r][t]' '{print $1}')
+            currentAdd=$(jq -r .inbounds[0].settings.clients[0].add ${configPath}${frontingType}.json)
+            if [[ "${currentAdd}" == "null" ]]; then
+                currentAdd=${currentHost}
+            fi
+            currentPort=$(jq .inbounds[0].port ${configPath}${frontingType}.json)
+
+            local defaultPortFile=
+            defaultPortFile=$(find ${configPath}* | grep "default")
+
+            if [[ -n "${defaultPortFile}" ]]; then
+                currentDefaultPort=$(echo "${defaultPortFile}" | awk -F [_] '{print $4}')
+            else
+                currentDefaultPort=$(jq -r .inbounds[0].port ${configPath}${frontingType}.json)
+            fi
+            currentUUID=$(jq -r .inbounds[0].settings.clients[0].id ${configPath}${frontingType}.json)
+            currentClients=$(jq -r .inbounds[0].settings.clients ${configPath}${frontingType}.json)
         fi
-		currentUUID=$(jq -r .inbounds[0].settings.clients[0].id ${configPath}${frontingType}.json)
-		currentPort=$(jq .inbounds[0].port ${configPath}${frontingType}.json)
-	fi
 }
 
 # 状态展示
@@ -948,13 +948,14 @@ initTLSNginxConfig() {
 	else
 		dnsTLSDomain=$(echo "${domain}" | awk -F "[.]" '{print $(NF-1)"."$NF}')
 		customPortFunction
-		local port=80
-		if [[ -n "${customPort}" ]]; then
-			port=${customPort}
-		fi
-
 		# 修改配置
-		touch ${nginxConfigPath}alone.conf
+        handleNginx stop
+        touch ${nginxConfigPath}alone.conf
+        nginxIPort=80
+        if [[ "${wildcardDomainStatus}" == "true" ]]; then
+            nginxIPort=${port}
+        fi
+
 		cat <<EOF >${nginxConfigPath}alone.conf
 server {
     listen ${port};
@@ -980,6 +981,7 @@ EOF
 	fi
 
 	readAcmeTLS
+    handleNginx start
 }
 
 # 修改nginx重定向配置
@@ -1011,14 +1013,14 @@ EOF
 
 		cat <<EOF >>${nginxConfigPath}alone.conf
 server {
-	    listen 127.0.0.1:31302 http2 so_keepalive=on;
-	    server_name ${domain};
-	    root ${nginxStaticPath};
+	listen 127.0.0.1:31302 http2 so_keepalive=on;
+	server_name ${domain};
+	root ${nginxStaticPath};
 
-	    client_header_timeout 1071906480m;
+	client_header_timeout 1071906480m;
     keepalive_timeout 1071906480m;
 
-	    location ~ ^/s/(clashMeta|default|clashMetaProfiles)/(.*) {
+	location ~ ^/s/(clashMeta|default|clashMetaProfiles)/(.*) {
         default_type 'text/plain; charset=utf-8';
         alias /etc/v2ray-agent/subscribe/\$1/\$2;
     }
@@ -1052,9 +1054,9 @@ EOF
 	elif echo "${selectCustomInstallType}" | grep -q 5 || [[ -z "${selectCustomInstallType}" ]]; then
 		cat <<EOF >>${nginxConfigPath}alone.conf
 server {
-	    listen 127.0.0.1:31302 http2;
-	    server_name ${domain};
-	    root ${nginxStaticPath};
+	listen 127.0.0.1:31302 http2;
+	server_name ${domain};
+	root ${nginxStaticPath};
 	location ~ ^/s/(clashMeta|default|clashMetaProfiles)/(.*) {
         default_type 'text/plain; charset=utf-8';
         alias /etc/v2ray-agent/subscribe/\$1/\$2;
@@ -1077,11 +1079,11 @@ EOF
 
 		cat <<EOF >>${nginxConfigPath}alone.conf
 server {
-	    listen 127.0.0.1:31302 http2;
-	    server_name ${domain};
-	    root ${nginxStaticPath};
-	    location ~ ^/s/(clashMeta|default|clashMetaProfiles)/(.*) {
-        default_type 'text/plain; charset=utf-8';
+	listen 127.0.0.1:31302 http2;
+	server_name ${domain};
+	root ${nginxStaticPath};
+	location ~ ^/s/(clashMeta|default|clashMetaProfiles)/(.*) {
+		default_type 'text/plain; charset=utf-8';
         alias /etc/v2ray-agent/subscribe/\$1/\$2;
     }
 	location /${currentPath}trojangrpc {
@@ -1117,15 +1119,15 @@ EOF
 
 	cat <<EOF >>${nginxConfigPath}alone.conf
 server {
-	    listen 127.0.0.1:31300;
-	    server_name ${domain};
-	    root ${nginxStaticPath};
-	    location ~ ^/s/(clashMeta|default|clashMetaProfiles)/(.*) {
+	listen 127.0.0.1:31300;
+	server_name ${domain};
+	root ${nginxStaticPath};
+	location ~ ^/s/(clashMeta|default|clashMetaProfiles)/(.*) {
             default_type 'text/plain; charset=utf-8';
             alias /etc/v2ray-agent/subscribe/\$1/\$2;
         }
-	    location / {
-		        add_header Strict-Transport-Security "max-age=15552000; preload" always;
+	location / {
+		add_header Strict-Transport-Security "max-age=15552000; preload" always;
 	}
 }
 EOF
@@ -1255,16 +1257,16 @@ selectAcmeInstallSSL() {
 			exit
 		fi
 		dnsSSLStatus=true
-	else
-        if [[ -z "${dnsSSLStatus}" ]]; then
-            read -r -p "是否使用DNS申请证书，如不会使用DNS申请证书请输入n[y/n]:" installSSLDNStatus
-
-            if [[ ${installSSLDNStatus} == 'y' ]]; then
-                dnsSSLStatus=true
-            else
-                dnsSSLStatus=false
-            fi
-		fi
+	    #    else
+        #        if [[ -z "${dnsSSLStatus}" ]]; then
+        #              read -r -p "是否使用DNS申请证书，如不会使用DNS申请证书请输入n[y/n]:" installSSLDNStatus
+        #
+        #              if [[ ${installSSLDNStatus} == 'y' ]]; then
+        #                  dnsSSLStatus=true
+        #              else
+        #                  dnsSSLStatus=false
+        #              fi
+		#         fi
 		
 	fi
 	acmeInstallSSL
@@ -1316,42 +1318,54 @@ acmeInstallSSL() {
 }
 # 自定义端口
 customPortFunction() {
-	local historyCustomPortStatus=
-	local showPort=
-	if [[ -n "${customPort}" || -n "${currentPort}" ]]; then
-		echo
-		read -r -p "读取到上次安装时的端口，是否使用上次安装时的端口？[y/n]:" historyCustomPortStatus
-		if [[ "${historyCustomPortStatus}" == "y" ]]; then
-			showPort="${currentPort}"
-			if [[ -n "${customPort}" ]]; then
-				showPort="${customPort}"
-			fi
-			echoContent yellow "\n ---> 端口: ${showPort}"
-		fi
-	fi
-    if [[ -z "${currentPort}" && -z "${customPort}" ]] || [[ "${historyCustomPortStatus}" == "n" ]];then
-		echo
-		
-		if [[ -n "${btDomain}" ]]; then
-		    echoContent yellow "请输入端口[不可于BT Panel端口相同]"
-		else
-		    echoContent yellow "请输入端口[默认: 443]，如自定义端口，只允许使用DNS申请证书[回车使用默认]"
-		fi
-		read -r -p "端口:" customPort
-		checkCustomPort
-		if [[ -n "${customPort}" && "${customPort}" != "443" ]]; then
-			if ((customPort >= 1 && customPort <= 65535)); then
+    local historyCustomPortStatus=
+    if [[ -n "${customPort}" || -n "${currentPort}" ]]; then
+        echo
+        read -r -p "读取到上次安装时的端口，是否使用上次安装时的端口？[y/n]:" historyCustomPortStatus
+        if [[ "${historyCustomPortStatus}" == "y" ]]; then
+            port=${currentPort}
+            echoContent yellow "\n ---> 端口: ${port}"
+        fi
+    fi
+    if [[ -z "${currentPort}" ]] || [[ "${historyCustomPortStatus}" == "n" ]]; then
+        echo
 
-				allowPort "${customPort}"
-			else
-				echoContent red " ---> 端口输入错误"
-				exit
-			fi
-		else
-            customPort=
-			echoContent yellow "\n ---> 端口: 443"
-		fi
-	fi
+        if [[ -n "${btDomain}" ]]; then
+            echoContent yellow "请输入端口[不可与BT Panel端口相同]"
+        else
+            checkPortOpen 80 "${domain}"
+            if [[ "${isPortOpen80}" == "true" ]]; then
+                echo
+                echoContent yellow "请输入端口[默认: 443]，可自定义端口[回车使用默认]"
+                read -r -p "端口:" port
+                if [[ -z "${port}" ]]; then
+                    port=443
+                fi
+                if [[ "${port}" == "${currentRealityPort}" ]]; then
+                    handleXray stop
+                fi
+            else
+                # todo dns api
+                wildcardDomainStatus=true
+                echoContent red "未检测到80端口开放，无法安装，后续会支持DNS API [TODO]"
+                echoContent yellow "检查域名解析，可以通过ping排查"
+                exit 0
+            fi
+        fi
+
+        checkPort "${port}"
+
+        if [[ -n "${port}" ]]; then
+            if ((port >= 1 && port <= 65535)); then
+
+                allowPort "${port}"
+                echoContent yellow "\n ---> 端口: ${port}"
+            else
+                echoContent red " ---> 端口输入错误"
+                exit 0
+            fi
+        fi
+    fi
 
 }
 
@@ -1393,16 +1407,17 @@ installTLS() {
 			switchSSLType
 			customSSLEmail
 			selectAcmeInstallSSL
-		else
-			echoContent green " ---> 检测到已安装通配符证书，自动生成中"
-		fi
-		if [[ "${installDNSACMEStatus}" == "true" ]]; then
-			echo
-			if [[ -d "$HOME/.acme.sh/*.${dnsTLSDomain}_ecc" && -f "$HOME/.acme.sh/*.${dnsTLSDomain}_ecc/*.${dnsTLSDomain}.key" && -f "$HOME/.acme.sh/*.${dnsTLSDomain}_ecc/*.${dnsTLSDomain}.cer" ]]; then
-				sudo "$HOME/.acme.sh/acme.sh" --installcert -d "*.${dnsTLSDomain}" --fullchainpath "/etc/v2ray-agent/tls/${tlsDomain}.crt" --keypath "/etc/v2ray-agent/tls/${tlsDomain}.key" --ecc >/dev/null
-			fi
-
-		elif [[ -d "$HOME/.acme.sh/${tlsDomain}_ecc" && -f "$HOME/.acme.sh/${tlsDomain}_ecc/${tlsDomain}.key" && -f "$HOME/.acme.sh/${tlsDomain}_ecc/${tlsDomain}.cer" ]]; then
+            #   else
+            #   echoContent green " ---> 检测到已安装通配符证书，自动生成中"
+        fi
+        #        if [[ "${installDNSACMEStatus}" == "true" ]]; then
+        #            echo
+        #            if [[ -d "$HOME/.acme.sh/*.${dnsTLSDomain}_ecc" && -f "$HOME/.acme.sh/*.${dnsTLSDomain}_ecc/*.${dnsTLSDomain}.key" && -f "$HOME/.acme.sh/*.${dnsTLSDomain}_ecc/*.${dnsTLSDomain}.cer" ]]; then
+        #                sudo "$HOME/.acme.sh/acme.sh" --installcert -d "*.${dnsTLSDomain}" --fullchainpath "/etc/v2ray-agent/tls/${tlsDomain}.crt" --keypath "/etc/v2ray-agent/tls/${tlsDomain}.key" --ecc >/dev/null
+        #            fi
+        #
+        #        el
+		if [[ -d "$HOME/.acme.sh/${tlsDomain}_ecc" && -f "$HOME/.acme.sh/${tlsDomain}_ecc/${tlsDomain}.key" && -f "$HOME/.acme.sh/${tlsDomain}_ecc/${tlsDomain}.cer" ]]; then
 			sudo "$HOME/.acme.sh/acme.sh" --installcert -d "${tlsDomain}" --fullchainpath "/etc/v2ray-agent/tls/${tlsDomain}.crt" --keypath "/etc/v2ray-agent/tls/${tlsDomain}.key" --ecc >/dev/null
 		fi
 
@@ -1415,13 +1430,13 @@ installTLS() {
 
 			installTLSCount=1
 			echo
-            if [[ -z "${customPort}" ]]; then
-			    echoContent red " ---> TLS安装失败，正在检查80、443端口是否开放"
-			    allowPort 80
-			    allowPort 443
-			fi
+            #            if [[ -z "${customPort}" ]]; then
+            #                echoContent red " ---> TLS安装失败，正在检查80、443端口是否开放"
+            # allowPort 80
+            # allowPort 443
+            #            fi
 
-			echoContent yellow " ---> 重新尝试安装TLS证书"
+            #            echoContent yellow " ---> 重新尝试安装TLS证书"
 
 			if tail -n 10 /etc/v2ray-agent/tls/acme.log | grep -q "Could not validate email address as valid"; then
 				echoContent red " ---> 邮箱无法通过SSL厂商验证，请重新输入"
@@ -1684,12 +1699,12 @@ installV2Ray() {
 			version=${v2rayCoreVersion}
 		fi
 
-		echoContent green " ---> v2ray-core版本:${version}"
-		if wget --help | grep -q show-progress; then
-			wget -c -q --show-progress -P /etc/v2ray-agent/v2ray/ "https://github.com/v2fly/v2ray-core/releases/download/${version}/${v2rayCoreCPUVendor}.zip"
-		else
-			wget -c -P /etc/v2ray-agent/v2ray/ "https://github.com/v2fly/v2ray-core/releases/download/${version}/${v2rayCoreCPUVendor}.zip" >/dev/null 2>&1
-		fi
+        echoContent green " ---> v2ray-core版本:${version}"
+        #        if wget --help | grep -q show-progress; then
+        wget -c -q "${wgetShowProgressStatus}" -P /etc/v2ray-agent/v2ray/ "https://github.com/v2fly/v2ray-core/releases/download/${version}/${v2rayCoreCPUVendor}.zip"
+        #        else
+        #            wget -c -P /etc/v2ray-agent/v2ray/ "https://github.com/v2fly/v2ray-core/releases/download/${version}/${v2rayCoreCPUVendor}.zip" >/dev/null 2>&1
+        #        fi
 
 		unzip -o "/etc/v2ray-agent/v2ray/${v2rayCoreCPUVendor}.zip" -d /etc/v2ray-agent/v2ray >/dev/null
 		rm -rf "/etc/v2ray-agent/v2ray/${v2rayCoreCPUVendor}.zip"
@@ -1721,11 +1736,11 @@ installHysteria() {
 		version=$(curl -s https://api.github.com/repos/apernet/hysteria/releases | jq -r '.[]|select (.prerelease==false)|.tag_name' | head -1)
 
 		echoContent green " ---> Hysteria版本:${version}"
-		if wget --help | grep -q show-progress; then
-			wget -c -q --show-progress -P /etc/v2ray-agent/hysteria/ "https://github.com/apernet/hysteria/releases/download/${version}/${hysteriaCoreCPUVendor}"
-		else
-			wget -c -P /etc/v2ray-agent/hysteria/ "https://github.com/apernet/hysteria/releases/download/${version}/${hysteriaCoreCPUVendor}" >/dev/null 2>&1
-		fi
+        #        if wget --help | grep -q show-progress; then
+        wget -c -q "${wgetShowProgressStatus}" -P /etc/v2ray-agent/hysteria/ "https://github.com/apernet/hysteria/releases/download/${version}/${hysteriaCoreCPUVendor}"
+        #        else
+        #            wget -c -P /etc/v2ray-agent/hysteria/ "https://github.com/apernet/hysteria/releases/download/${version}/${hysteriaCoreCPUVendor}" >/dev/null 2>&1
+        #        fi
 		mv "/etc/v2ray-agent/hysteria/${hysteriaCoreCPUVendor}" /etc/v2ray-agent/hysteria/hysteria
 		chmod 655 /etc/v2ray-agent/hysteria/hysteria
 	else
@@ -1738,6 +1753,12 @@ installHysteria() {
 	fi
 
 }
+# 检查wget showProgress
+checkWgetShowProgress() {
+    if find /usr/bin /usr/sbin | grep -q -w wget && wget --help | grep -q show-progress; then
+        wgetShowProgressStatus="--show-progress"
+    fi
+}
 # 安装xray
 installXray() {
 	readInstallType
@@ -1748,11 +1769,16 @@ installXray() {
 		version=$(curl -s https://api.github.com/repos/XTLS/Xray-core/releases | jq -r '.[]|select (.prerelease==false)|.tag_name' | head -1)
 
 		echoContent green " ---> Xray-core版本:${version}"
-		if wget --help | grep -q show-progress; then
-			wget -c -q --show-progress -P /etc/v2ray-agent/xray/ "https://github.com/XTLS/Xray-core/releases/download/${version}/${xrayCoreCPUVendor}.zip"
-		else
-			wget -c -P /etc/v2ray-agent/xray/ "https://github.com/XTLS/Xray-core/releases/download/${version}/${xrayCoreCPUVendor}.zip" >/dev/null 2>&1
-		fi
+
+        #        if wget --help | grep -q show-progress; then
+        wget -c -q "${wgetShowProgressStatus}" -P /etc/v2ray-agent/xray/ "https://github.com/XTLS/Xray-core/releases/download/${version}/${xrayCoreCPUVendor}.zip"
+        #        else
+        #            wget -c -P /etc/v2ray-agent/xray/ "https://github.com/XTLS/Xray-core/releases/download/${version}/${xrayCoreCPUVendor}.zip" >/dev/null 2>&1
+        #        fi
+        if [[ ! -f "/etc/v2ray-agent/xray/${xrayCoreCPUVendor}.zip" ]]; then
+            echoContent red " ---> 核心下载失败，请重新尝试安装"
+            exit 0
+        fi
 
 		unzip -o "/etc/v2ray-agent/xray/${xrayCoreCPUVendor}.zip" -d /etc/v2ray-agent/xray >/dev/null
 		rm -rf "/etc/v2ray-agent/xray/${xrayCoreCPUVendor}.zip"
@@ -1977,11 +2003,11 @@ updateXray() {
 
 		echoContent green " ---> Xray-core版本:${version}"
 
-		if wget --help | grep -q show-progress; then
-			wget -c -q --show-progress -P /etc/v2ray-agent/xray/ "https://github.com/XTLS/Xray-core/releases/download/${version}/${xrayCoreCPUVendor}.zip"
-		else
-			wget -c -P /etc/v2ray-agent/xray/ "https://github.com/XTLS/Xray-core/releases/download/${version}/${xrayCoreCPUVendor}.zip" >/dev/null 2>&1
-		fi
+        #        if wget --help | grep -q show-progress; then
+        wget -c -q "${wgetShowProgressStatus}" -P /etc/v2ray-agent/xray/ "https://github.com/XTLS/Xray-core/releases/download/${version}/${xrayCoreCPUVendor}.zip"
+        #        else
+        #            wget -c -P /etc/v2ray-agent/xray/ "https://github.com/XTLS/Xray-core/releases/download/${version}/${xrayCoreCPUVendor}.zip" >/dev/null 2>&1
+        #        fi
 
 		unzip -o "/etc/v2ray-agent/xray/${xrayCoreCPUVendor}.zip" -d /etc/v2ray-agent/xray >/dev/null
 		rm -rf "/etc/v2ray-agent/xray/${xrayCoreCPUVendor}.zip"
@@ -2226,7 +2252,73 @@ handleXray() {
 		fi
 	fi
 }
-# 获取clients配置
+# 读取用户数据并初始化
+initXrayClients() {
+    local type=$1
+    local newUUID=$2
+    local newEmail=$3
+    if [[ -n "${newUUID}" ]]; then
+        local newUser=
+        newUser="{\"id\":\"${uuid}\",\"flow\":\"xtls-rprx-vision\",\"email\":\"${newEmail}-VLESS_TCP/TLS_Vision\"}"
+        currentClients=$(echo "${currentClients}" | jq -r ". +=[${newUser}]")
+    fi
+
+    local users=[]
+    users=[]
+    while read -r user; do
+        uuid=$(echo "${user}" | jq -r .id)
+        email=$(echo "${user}" | jq -r .email | awk -F "[-]" '{print $1}')
+        currentUser=
+        if echo "${type}" | grep -q "0"; then
+            add=$(echo "${user}" | jq -r .add)
+            if [[ "${add}" != 'null' ]]; then
+                currentUser="{\"id\":\"${uuid}\",\"flow\":\"xtls-rprx-vision\",\"email\":\"${email}-VLESS_TCP/TLS_Vision\",\"add\":\"${add}\"}"
+            else
+                currentUser="{\"id\":\"${uuid}\",\"flow\":\"xtls-rprx-vision\",\"email\":\"${email}-VLESS_TCP/TLS_Vision\"}"
+            fi
+
+            users=$(echo "${users}" | jq -r ". +=[${currentUser}]")
+        fi
+
+        # VLESS WS
+        if echo "${type}" | grep -q "1"; then
+            currentUser="{\"id\":\"${uuid}\",\"email\":\"${email}-VLESS_WS\"}"
+            users=$(echo "${users}" | jq -r ". +=[${currentUser}]")
+        fi
+        # trojan grpc
+        if echo "${type}" | grep -q "2"; then
+            currentUser="{\"password\":\"${uuid}\",\"email\":\"${email}-Trojan_gRPC\"}"
+            users=$(echo "${users}" | jq -r ". +=[${currentUser}]")
+        fi
+        # VMess WS
+        if echo "${type}" | grep -q "3"; then
+            currentUser="{\"id\":\"${uuid}\",\"email\":\"${email}-VMess_WS\",\"alterId\": 0}"
+
+            users=$(echo "${users}" | jq -r ". +=[${currentUser}]")
+        fi
+
+        # trojan tcp
+        if echo "${type}" | grep -q "4"; then
+            currentUser="{\"password\":\"${uuid}\",\"email\":\"${email}-trojan_tcp\"}"
+
+            users=$(echo "${users}" | jq -r ". +=[${currentUser}]")
+        fi
+
+        # vless grpc
+        if echo "${type}" | grep -q "5"; then
+            currentUser="{\"id\":\"${uuid}\",\"email\":\"${email}-vless_grpc\"}"
+
+            users=$(echo "${users}" | jq -r ". +=[${currentUser}]")
+        fi
+
+        # hysteria
+        if echo "${type}" | grep -q "6"; then
+            users=$(echo "${users}" | jq -r ". +=[\"${uuid}\"]")
+        fi
+
+    done < <(echo "${currentClients}" | jq -c '.[]')
+    echo "${users}"
+}
 getClients() {
 	local path=$1
 
@@ -2286,6 +2378,9 @@ initHysteriaPort() {
 	if [[ -z "${hysteriaPort}" ]]; then
 		echoContent yellow "请输入Hysteria端口[例: 10000]，不可与其他服务重复"
 		read -r -p "端口:" hysteriaPort
+        if [[ -z "${hysteriaPort}" ]]; then
+            hysteriaPort=$((RANDOM % 50001 + 10000))
+		fi
 	fi
 	if [[ -z ${hysteriaPort} ]]; then
 		echoContent red " ---> 端口不可为空"
@@ -2825,11 +2920,18 @@ initXrayFrontingConfig() {
 
 # 移动上次配置文件至临时文件
 movePreviousConfig() {
-	if [[ -n "${configPath}" ]] && [[ -f "${configPath}02_VLESS_TCP_inbounds.json" ]]; then
-		rm -rf ${configPath}../tmp/*
-		mv ${configPath}* ${configPath}../tmp/
-	fi
 
+    if [[ -n "${configPath}" ]]; then
+        if [[ -z "${realityStatus}" ]]; then
+            rm -rf "${configPath}../tmp/*" 2>/dev/null
+            mv ${configPath}[0][2-6]* ${configPath}../tmp/ 2>/dev/null
+        else
+            rm -rf "${configPath}../tmp/*"
+            mv ${configPath}[0][7-8]* ${configPath}../tmp/ 2>/dev/null
+            mv ${configPath}[0][2]* ${configPath}../tmp/ 2>/dev/null
+        fi
+
+    fi
 }
 
 # 初始化Xray 配置文件
@@ -2868,13 +2970,12 @@ initXrayConfig() {
     if [[ -n "${uuid}" ]]; then
         currentClients='[{"id":"'${uuid}'","add":"'${add}'","flow":"xtls-rprx-vision","email":"'${uuid}'-VLESS_TCP/TLS_Vision"}]'
 	    echoContent yellow "\n ${uuid}"
-
-
+	fi
 
 	# log
     if [[ ! -f "/etc/v2ray-agent/xray/conf/00_log.json" ]]; then
 
-	cat <<EOF >/etc/v2ray-agent/xray/conf/00_log.json
+	    cat <<EOF >/etc/v2ray-agent/xray/conf/00_log.json
 {
   "log": {
     "error": "/etc/v2ray-agent/xray/error.log",
@@ -2900,7 +3001,8 @@ EOF
 EOF
     fi
 	# outbounds
-	if [[ -n "${pingIPv6}" ]]; then
+	if [[ ! -f "/etc/v2ray-agent/xray/conf/10_ipv6_outbounds.json" ]]; then
+	    if [[ -n "${pingIPv6}" ]]; then
 		cat <<EOF >/etc/v2ray-agent/xray/conf/10_ipv6_outbounds.json
 {
     "outbounds": [
@@ -2958,7 +3060,7 @@ EOF
 EOF
     # routing
     if [[ ! -f "/etc/v2ray-agent/xray/conf/09_routing.json" ]]; then
-	cat <<EOF >/etc/v2ray-agent/xray/conf/09_routing.json
+	    cat <<EOF >/etc/v2ray-agent/xray/conf/09_routing.json
 {
   "routing": {
 	"rules": [
@@ -3015,28 +3117,27 @@ EOF
 	# VLESS_WS_TLS
 	if echo "${selectCustomInstallType}" | grep -q 1 || [[ "$1" == "all" ]]; then
 		fallbacksList=${fallbacksList}',{"path":"/'${customPath}'ws","dest":31297,"xver":1}'
-		getClients "${configPath}../tmp/03_VLESS_WS_inbounds.json" "${addClientsStatus}"
 		cat <<EOF >/etc/v2ray-agent/xray/conf/03_VLESS_WS_inbounds.json
 {
 "inbounds":[
     {
-	      "port": 31297,
-	      "listen": "127.0.0.1",
-	      "protocol": "vless",
-	      "tag":"VLESSWS",
-	      "settings": {
-		        "clients": $(initXrayClients 1),
-		        "decryption": "none"
-	      },
-	      "streamSettings": {
-		        "network": "ws",
-		        "security": "none",
-		        "wsSettings": {
-		          "acceptProxyProtocol": true,
-		          "path": "/${customPath}ws"
-		        }
-	      }
-	    }
+	  "port": 31297,
+	  "listen": "127.0.0.1",
+	  "protocol": "vless",
+	  "tag":"VLESSWS",
+	  "settings": {
+		"clients": $(initXrayClients 1),
+		"decryption": "none"
+	  },
+	  "streamSettings": {
+		"network": "ws",
+		"security": "none",
+		"wsSettings": {
+		  "acceptProxyProtocol": true,
+		  "path": "/${customPath}ws"
+		}
+	  }
+	}
 ]
 }
 EOF
@@ -3049,7 +3150,6 @@ EOF
 		if ! echo "${selectCustomInstallType}" | grep -q 5 && [[ -n ${selectCustomInstallType} ]]; then
 			fallbacksList=${fallbacksList//31302/31304}
 		fi
-		getClients "${configPath}../tmp/04_trojan_gRPC_inbounds.json" "${addClientsStatus}"
 		cat <<EOF >/etc/v2ray-agent/xray/conf/04_trojan_gRPC_inbounds.json
 {
     "inbounds": [
@@ -3083,7 +3183,6 @@ EOF
 	# VMess_WS
 	if echo "${selectCustomInstallType}" | grep -q 3 || [[ "$1" == "all" ]]; then
 		fallbacksList=${fallbacksList}',{"path":"/'${customPath}'vws","dest":31299,"xver":1}'
-		getClients "${configPath}../tmp/05_VMess_WS_inbounds.json" "${addClientsStatus}"
 		cat <<EOF >/etc/v2ray-agent/xray/conf/05_VMess_WS_inbounds.json
 {
 "inbounds":[
@@ -3112,7 +3211,6 @@ EOF
 	fi
 
 	if echo "${selectCustomInstallType}" | grep -q 5 || [[ "$1" == "all" ]]; then
-		getClients "${configPath}../tmp/06_VLESS_gRPC_inbounds.json" "${addClientsStatus}"
 		cat <<EOF >/etc/v2ray-agent/xray/conf/06_VLESS_gRPC_inbounds.json
 {
     "inbounds":[
@@ -3183,13 +3281,9 @@ EOF
     fi
 
 	# VLESS_TCP
-	getClients "${configPath}../tmp/02_VLESS_TCP_inbounds.json" "${addClientsStatus}"
-	local defaultPort=443
-	if [[ -n "${customPort}" ]]; then
-		defaultPort=${customPort}
-	fi
+	if echo "${selectCustomInstallType}" | grep -q 7 || [[ "$1" == "all" ]]; then
 
-	cat <<EOF >/etc/v2ray-agent/xray/conf/02_VLESS_TCP_inbounds.json
+	    cat <<EOF >/etc/v2ray-agent/xray/conf/02_VLESS_TCP_inbounds.json
 {
   "inbounds": [
     {
@@ -3229,7 +3323,9 @@ EOF
 ]
 }
 EOF
-	cat <<EOF >/etc/v2ray-agent/xray/conf/02_VLESS_TCP_inbounds.json" "${addClientsStatus}"
+    else
+        rm /etc/v2ray-agent/xray/conf/02_VLESS_TCP_inbounds.json >/dev/null 2>&1
+    fi
 }
 # 初始化Xray配置
 # 自定义CDN IP
