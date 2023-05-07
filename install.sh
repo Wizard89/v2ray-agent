@@ -492,6 +492,7 @@ readConfigHostPathUUID() {
 				fi
 			fi
 		fi
+
 	fi
 
     if [[ "${coreInstallType}" == "1" ]]; then
