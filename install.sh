@@ -32,6 +32,14 @@ echoContent() {
 		;;
 	esac
 }
+# 检查SELinux状态
+checkCentosSELinux() {
+    if [[ -f "/etc/selinux/config" ]] && ! grep -q "SELINUX=disabled" <"/etc/selinux/config"; then
+        echoContent yellow "# 注意事项"
+        echoContent yellow "检测到SELinux已开启，请手动关闭"
+        exit 0
+    fi
+}
 checkSystem() {
 	if [[ -n $(find /etc -name "redhat-release") ]] || grep </proc/version -q -i "centos"; then
 		mkdir -p /etc/yum.repos.d
@@ -48,7 +56,7 @@ checkSystem() {
 		installType='yum -y install'
 		removeType='yum -y remove'
 		upgrade="yum update -y --skip-broken"
-
+        checkCentosSELinux
 	elif grep </etc/issue -q -i "debian" && [[ -f "/etc/issue" ]] || grep </etc/issue -q -i "debian" && [[ -f "/proc/version" ]]; then
 		release="debian"
 		installType='apt -y install'
@@ -157,6 +165,11 @@ initVar() {
 
 	# hysteria 配置文件的路径
 	hysteriaConfigPath=
+    #    interfaceName=
+    # 端口跳跃
+    portHoppingStart=
+    portHoppingEnd=
+    portHopping=
 
 	# 配置文件的path
 	currentPath=
@@ -184,8 +197,8 @@ initVar() {
 
 	localIP=
 
-	# 集成更新证书逻辑不再使用单独的脚本--RenewTLS
-	renewTLS=$1
+    # 定时任务执行任务名称 RenewTLS-更新证书 UpdateGeo-更新geo文件
+    cronName=$1
 
 	# tls安装失败后尝试的次数
 	installTLSCount=
@@ -339,19 +352,35 @@ readInstallProtocolType() {
 checkBTPanel() {
 	if [[ -n $(pgrep -f "BT-Panel") ]]; then
 	    # 读取域名
-		if [[ -d '/www/server/panel/vhost/cert/' ]]; then
-		    btDomain=$(find /www/server/panel/vhost/cert/* | head -1 | awk -F "[/]" '{print $7}')
-			domain=${btDomain}
-			if [[ ! -f "/etc/v2ray-agent/tls/${btDomain}.key" && ! -f "/etc/v2ray-agent/tls/${btDomain}.crt" && ! -L "/etc/v2ray-agent/tls/${btDomain}.key" && ! -L "/etc/v2ray-agent/tls/${btDomain}.crt" ]]; then
-			    ln -s "/www/server/panel/vhost/cert/${btDomain}/privkey.pem" "/etc/v2ray-agent/tls/${btDomain}.key"
-				ln -s "/www/server/panel/vhost/cert/${btDomain}/fullchain.pem" "/etc/v2ray-agent/tls/${btDomain}.crt"
-			fi
-			nginxStaticPath="/www/wwwroot/${btDomain}/"
-			if [[ -f "/www/wwwroot/${btDomain}/.user.ini" ]]; then
-			    chattr -i "/www/wwwroot/${btDomain}/.user.ini"
-			fi
+        if [[ -d '/www/server/panel/vhost/cert/' && -n $(find /www/server/panel/vhost/cert/*/fullchain.pem) ]]; then
 
-			nginxConfigPath="/www/server/panel/vhost/nginx/"
+            echoContent skyBlue "\n读取宝塔配置\n"
+
+            find /www/server/panel/vhost/cert/*/fullchain.pem | awk -F "[/]" '{print $7}' | awk '{print NR""":"$0}'
+
+            read -r -p "请输入编号选择:" selectBTDomain
+            if [[ -n "${selectBTDomain}" ]]; then
+                btDomain=$(find /www/server/panel/vhost/cert/*/fullchain.pem | awk -F "[/]" '{print $7}' | awk '{print NR""":"$0}' | grep "${selectBTDomain}:" | cut -d ":" -f 2)
+                if [[ -z "${btDomain}" ]]; then
+                    echoContent red " ---> 选择错误，请重新选择"
+                    checkBTPanel
+                else
+                    domain=${btDomain}
+                    ln -s "/www/server/panel/vhost/cert/${btDomain}/fullchain.pem" "/etc/v2ray-agent/tls/${btDomain}.crt"
+                    ln -s "/www/server/panel/vhost/cert/${btDomain}/privkey.pem" "/etc/v2ray-agent/tls/${btDomain}.key"
+
+                    nginxStaticPath="/www/wwwroot/${btDomain}/"
+                    if [[ -f "/www/wwwroot/${btDomain}/.user.ini" ]]; then
+                        chattr -i "/www/wwwroot/${btDomain}/.user.ini"
+                    fi
+
+                    nginxConfigPath="/www/server/panel/vhost/nginx/"
+                fi
+
+            else
+                echoContent red " ---> 选择错误，请重新选择"
+                checkBTPanel
+            fi
 		fi
 	fi
 }
@@ -395,8 +424,14 @@ allowPort() {
 		local updateFirewalldStatus=
 		if ! firewall-cmd --list-ports --permanent | grep -qw "$1/tcp"; then
 			updateFirewalldStatus=true
-			firewall-cmd --zone=public --add-port="$1/tcp" --permanent
-			checkFirewalldAllowPort "$1"
+            local firewallPort=$1
+
+            if echo "${firewallPort}" | grep ":"; then
+                firewallPort=$(echo "${firewallPort}" | awk -F ":" '{print $1-$2}')
+            fi
+
+            firewall-cmd --zone=public --add-port="${firewallPort}/${type}" --permanent
+            checkFirewalldAllowPort "${firewallPort}"
 		fi
 
 		if echo "${updateFirewalldStatus}" | grep -q "true"; then
@@ -607,7 +642,7 @@ readInstallProtocolType
 readConfigHostPathUUID
 readInstallAlpn
 readCustomPort
-checkBTPanel
+readXrayCoreRealityConfig
 # -------------------------------------------------------------
 
 # 初始化安装目录
@@ -627,7 +662,6 @@ mkdirTools() {
     mkdir -p /etc/v2ray-agent/v2ray/tmp
     mkdir -p /etc/v2ray-agent/xray/conf
     mkdir -p /etc/v2ray-agent/xray/tmp
-    mkdir -p /etc/v2ray-agent/trojan
     mkdir -p /etc/v2ray-agent/hysteria/conf
     mkdir -p /etc/systemd/system/
     mkdir -p /tmp/v2ray-agent-tls/
@@ -991,8 +1025,9 @@ EOF
 updateRevisionNginxConf() {
     local redirectDomain=
     redirectDomain=${domain}:${port}
-
-    checkPortOpen 80 "${domain}" >/dev/null
+    if [[ -z "${btDomain}" ]]; then
+        checkPortOpen 80 "${domain}" >/dev/null
+    fi
 
     cat <<EOF >${nginxConfigPath}alone.conf
     server {
@@ -1334,7 +1369,11 @@ customPortFunction() {
         echo
 
         if [[ -n "${btDomain}" ]]; then
-            echoContent yellow "请输入端口[不可与BT Panel端口相同]"
+            echoContent yellow "请输入端口[不可与BT Panel端口相同，回车随机]"
+            read -r -p "端口:" port
+            if [[ -z "${port}" ]]; then
+                port=$((RANDOM % 20001 + 10000))
+            fi
         else
             checkPortOpen 80 "${domain}"
             if [[ "${isPortOpen80}" == "true" ]]; then
@@ -1608,86 +1647,101 @@ installCronTLS() {
 		echoContent green "\n ---> 添加定时维护证书成功"
     fi
 }
+# 定时任务更新geo文件
+installCronUpdateGeo() {
+    if [[ -n "${configPath}" ]]; then
+        if crontab -l | grep -q "UpdateGeo"; then
+            echoContent red "\n ---> 已添加自动更新定时任务，请不要重复添加"
+            exit 0
+        fi
+        echoContent skyBlue "\n进度 1/1 : 添加定时更新geo文件"
+        crontab -l >/etc/v2ray-agent/backup_crontab.cron
+        echo "35 1 * * * /bin/bash /etc/v2ray-agent/install.sh UpdateGeo >> /etc/v2ray-agent/crontab_tls.log 2>&1" >>/etc/v2ray-agent/backup_crontab.cron
+        crontab /etc/v2ray-agent/backup_crontab.cron
+        echoContent green "\n ---> 添加定时更新geo文件成功"
+    fi
+}
 
 # 更新证书
 renewalTLS() {
 
-	if [[ -n $1 ]]; then
-		echoContent skyBlue "\n进度  $1/1 : 更新证书"
-	fi
-	readAcmeTLS
-	local domain=${currentHost}
-	if [[ -z "${currentHost}" && -n "${tlsDomain}" ]]; then
-		domain=${tlsDomain}
-	fi
+    if [[ -n $1 ]]; then
+        echoContent skyBlue "\n进度  $1/1 : 更新证书"
+    fi
+    readAcmeTLS
+    local domain=${currentHost}
+    if [[ -z "${currentHost}" && -n "${tlsDomain}" ]]; then
+        domain=${tlsDomain}
+    fi
 
-	if [[ -f "/etc/v2ray-agent/tls/ssl_type" ]]; then
-		if grep -q "buypass" <"/etc/v2ray-agent/tls/ssl_type"; then
-			sslRenewalDays=180
-		fi
-	fi
-	if [[ -d "$HOME/.acme.sh/${domain}_ecc" && -f "$HOME/.acme.sh/${domain}_ecc/${domain}.key" && -f "$HOME/.acme.sh/${domain}_ecc/${domain}.cer" ]] || [[ "${installDNSACMEStatus}" == "true" ]]; then
-		modifyTime=
+    if [[ -f "/etc/v2ray-agent/tls/ssl_type" ]]; then
+        if grep -q "buypass" <"/etc/v2ray-agent/tls/ssl_type"; then
+            sslRenewalDays=180
+        fi
+    fi
+    if [[ -d "$HOME/.acme.sh/${domain}_ecc" && -f "$HOME/.acme.sh/${domain}_ecc/${domain}.key" && -f "$HOME/.acme.sh/${domain}_ecc/${domain}.cer" ]] || [[ "${installDNSACMEStatus}" == "true" ]]; then
+        modifyTime=
 
-		if [[ "${installDNSACMEStatus}" == "true" ]]; then
-			modifyTime=$(stat "$HOME/.acme.sh/*.${dnsTLSDomain}_ecc/*.${dnsTLSDomain}.cer" | sed -n '7,6p' | awk '{print $2" "$3" "$4" "$5}')
-		else
-			modifyTime=$(stat "$HOME/.acme.sh/${domain}_ecc/${domain}.cer" | sed -n '7,6p' | awk '{print $2" "$3" "$4" "$5}')
-		fi
+        if [[ "${installDNSACMEStatus}" == "true" ]]; then
+            modifyTime=$(stat --format=%z "$HOME/.acme.sh/*.${dnsTLSDomain}_ecc/*.${dnsTLSDomain}.cer")
+        else
+            modifyTime=$(stat --format=%z "$HOME/.acme.sh/${domain}_ecc/${domain}.cer")
+        fi
 
-		modifyTime=$(date +%s -d "${modifyTime}")
-		currentTime=$(date +%s)
-		((stampDiff = currentTime - modifyTime))
-		((days = stampDiff / 86400))
-		((remainingDays = sslRenewalDays - days))
+        modifyTime=$(date +%s -d "${modifyTime}")
+        currentTime=$(date +%s)
+        ((stampDiff = currentTime - modifyTime))
+        ((days = stampDiff / 86400))
+        ((remainingDays = sslRenewalDays - days))
 
-		tlsStatus=${remainingDays}
-		if [[ ${remainingDays} -le 0 ]]; then
-			tlsStatus="已过期"
-		fi
+        tlsStatus=${remainingDays}
+        if [[ ${remainingDays} -le 0 ]]; then
+            tlsStatus="已过期"
+        fi
 
-		echoContent skyBlue " ---> 证书检查日期:$(date "+%F %H:%M:%S")"
-		echoContent skyBlue " ---> 证书生成日期:$(date -d @"${modifyTime}" +"%F %H:%M:%S")"
-		echoContent skyBlue " ---> 证书生成天数:${days}"
-		echoContent skyBlue " ---> 证书剩余天数:"${tlsStatus}
-		echoContent skyBlue " ---> 证书过期前最后一天自动更新，如更新失败请手动更新"
+        echoContent skyBlue " ---> 证书检查日期:$(date "+%F %H:%M:%S")"
+        echoContent skyBlue " ---> 证书生成日期:$(date -d @"${modifyTime}" +"%F %H:%M:%S")"
+        echoContent skyBlue " ---> 证书生成天数:${days}"
+        echoContent skyBlue " ---> 证书剩余天数:"${tlsStatus}
+        echoContent skyBlue " ---> 证书过期前最后一天自动更新，如更新失败请手动更新"
 
-		if [[ ${remainingDays} -le 1 ]]; then
-			echoContent yellow " ---> 重新生成证书"
-			handleNginx stop
-			sudo "$HOME/.acme.sh/acme.sh" --cron --home "$HOME/.acme.sh"
-			sudo "$HOME/.acme.sh/acme.sh" --installcert -d "${domain}" --fullchainpath /etc/v2ray-agent/tls/"${domain}.crt" --keypath /etc/v2ray-agent/tls/"${domain}.key" --ecc
-			reloadCore
-			handleNginx start
-		else
-			echoContent green " ---> 证书有效"
-		fi
-	else
-		echoContent red " ---> 未安装"
-	fi
+        if [[ ${remainingDays} -le 1 ]]; then
+            echoContent yellow " ---> 重新生成证书"
+            handleNginx stop
+            sudo "$HOME/.acme.sh/acme.sh" --cron --home "$HOME/.acme.sh"
+            sudo "$HOME/.acme.sh/acme.sh" --installcert -d "${domain}" --fullchainpath /etc/v2ray-agent/tls/"${domain}.crt" --keypath /etc/v2ray-agent/tls/"${domain}.key" --ecc
+            reloadCore
+            handleNginx start
+        else
+            echoContent green " ---> 证书有效"
+        fi
+    else
+        echoContent red " ---> 未安装"
+    fi
 }
 # 查看TLS证书的状态
 checkTLStatus() {
 
-	if [[ -d "$HOME/.acme.sh/${currentHost}_ecc" ]] && [[ -f "$HOME/.acme.sh/${currentHost}_ecc/${currentHost}.key" ]] && [[ -f "$HOME/.acme.sh/${currentHost}_ecc/${currentHost}.cer" ]]; then
-		modifyTime=$(stat "$HOME/.acme.sh/${currentHost}_ecc/${currentHost}.cer" | sed -n '7,6p' | awk '{print $2" "$3" "$4" "$5}')
+    if [[ -d "$HOME/.acme.sh/${currentHost}_ecc" ]] && [[ -f "$HOME/.acme.sh/${currentHost}_ecc/${currentHost}.key" ]] && [[ -f "$HOME/.acme.sh/${currentHost}_ecc/${currentHost}.cer" ]]; then
+        modifyTime=$(stat "$HOME/.acme.sh/${currentHost}_ecc/${currentHost}.cer" | sed -n '7,6p' | awk '{print $2" "$3" "$4" "$5}')
 
-		modifyTime=$(date +%s -d "${modifyTime}")
-		currentTime=$(date +%s)
-		((stampDiff = currentTime - modifyTime))
-		((days = stampDiff / 86400))
-		((remainingDays = sslRenewalDays - days))
+        modifyTime=$(date +%s -d "${modifyTime}")
+        currentTime=$(date +%s)
+        ((stampDiff = currentTime - modifyTime))
+        ((days = stampDiff / 86400))
+        ((remainingDays = sslRenewalDays - days))
 
-		tlsStatus=${remainingDays}
-		if [[ ${remainingDays} -le 0 ]]; then
-			tlsStatus="已过期"
-		fi
+        tlsStatus=${remainingDays}
+        if [[ ${remainingDays} -le 0 ]]; then
+            tlsStatus="已过期"
+        fi
 
-		echoContent skyBlue " ---> 证书生成日期:$(date -d "@${modifyTime}" +"%F %H:%M:%S")"
-		echoContent skyBlue " ---> 证书生成天数:${days}"
-		echoContent skyBlue " ---> 证书剩余天数:${tlsStatus}"
-	fi
+        echoContent skyBlue " ---> 证书生成日期:$(date -d "@${modifyTime}" +"%F %H:%M:%S")"
+        echoContent skyBlue " ---> 证书生成天数:${days}"
+        echoContent skyBlue " ---> 证书剩余天数:${tlsStatus}"
+    fi
 }
+
 
 # 安装V2Ray、指定版本
 installV2Ray() {
@@ -1764,14 +1818,19 @@ checkWgetShowProgress() {
 }
 # 安装xray
 installXray() {
-	readInstallType
-	echoContent skyBlue "\n进度  $1/${totalProgress} : 安装Xray"
+    readInstallType
+    local prereleaseStatus=false
+    if [[ "$2" == "true" ]]; then
+        prereleaseStatus=true
+    fi
 
-	if [[ "${coreInstallType}" != "1" ]]; then
+    echoContent skyBlue "\n进度  $1/${totalProgress} : 安装Xray"
 
-		version=$(curl -s https://api.github.com/repos/XTLS/Xray-core/releases | jq -r '.[]|select (.prerelease==false)|.tag_name' | head -1)
+    if [[ "${coreInstallType}" != "1" ]]; then
 
-		echoContent green " ---> Xray-core版本:${version}"
+        version=$(curl -s https://api.github.com/repos/XTLS/Xray-core/releases | jq -r '.[]|select (.prerelease=='${prereleaseStatus}')|.tag_name' | head -1)
+
+        echoContent green " ---> Xray-core版本:${version}"
 
         #        if wget --help | grep -q show-progress; then
         wget -c -q "${wgetShowProgressStatus}" -P /etc/v2ray-agent/xray/ "https://github.com/XTLS/Xray-core/releases/download/${version}/${xrayCoreCPUVendor}.zip"
@@ -1783,26 +1842,28 @@ installXray() {
             exit 0
         fi
 
-		unzip -o "/etc/v2ray-agent/xray/${xrayCoreCPUVendor}.zip" -d /etc/v2ray-agent/xray >/dev/null
-		rm -rf "/etc/v2ray-agent/xray/${xrayCoreCPUVendor}.zip"
+        unzip -o "/etc/v2ray-agent/xray/${xrayCoreCPUVendor}.zip" -d /etc/v2ray-agent/xray >/dev/null
+        rm -rf "/etc/v2ray-agent/xray/${xrayCoreCPUVendor}.zip"
 
-		version=$(curl -s https://api.github.com/repos/Loyalsoldier/v2ray-rules-dat/releases | jq -r '.[]|.tag_name' | head -1)
-		echoContent skyBlue "------------------------Version-------------------------------"
-		echo "version:${version}"
-		rm /etc/v2ray-agent/xray/geo* >/dev/null 2>&1
-		wget -c -q --show-progress -P /etc/v2ray-agent/xray/ "https://github.com/Loyalsoldier/v2ray-rules-dat/releases/download/${version}/geosite.dat"
-		wget -c -q --show-progress -P /etc/v2ray-agent/xray/ "https://github.com/Loyalsoldier/v2ray-rules-dat/releases/download/${version}/geoip.dat"
-		
-		chmod 655 /etc/v2ray-agent/xray/xray
-	else
-		echoContent green " ---> Xray-core版本:$(/etc/v2ray-agent/xray/xray --version | awk '{print $2}' | head -1)"
-		read -r -p "是否更新、升级？[y/n]:" reInstallXrayStatus
-		if [[ "${reInstallXrayStatus}" == "y" ]]; then
-			rm -f /etc/v2ray-agent/xray/xray
-			installXray "$1"
-		fi
-	fi
+        version=$(curl -s https://api.github.com/repos/Loyalsoldier/v2ray-rules-dat/releases | jq -r '.[]|.tag_name' | head -1)
+        echoContent skyBlue "------------------------Version-------------------------------"
+        echo "version:${version}"
+        rm /etc/v2ray-agent/xray/geo* >/dev/null 2>&1
+
+        wget -c -q "${wgetShowProgressStatus}" -P /etc/v2ray-agent/xray/ "https://github.com/Loyalsoldier/v2ray-rules-dat/releases/download/${version}/geosite.dat"
+        wget -c -q "${wgetShowProgressStatus}" -P /etc/v2ray-agent/xray/ "https://github.com/Loyalsoldier/v2ray-rules-dat/releases/download/${version}/geoip.dat"
+
+        chmod 655 /etc/v2ray-agent/xray/xray
+    else
+        echoContent green " ---> Xray-core版本:$(/etc/v2ray-agent/xray/xray --version | awk '{print $2}' | head -1)"
+        read -r -p "是否更新、升级？[y/n]:" reInstallXrayStatus
+        if [[ "${reInstallXrayStatus}" == "y" ]]; then
+            rm -f /etc/v2ray-agent/xray/xray
+            installXray "$1" "$2"
+        fi
+    fi
 }
+
 
 # v2ray版本管理
 v2rayVersionManageMenu() {
@@ -1819,6 +1880,7 @@ v2rayVersionManageMenu() {
 	echoContent yellow "4.打开v2ray-core"
 	echoContent yellow "5.重启v2ray-core"
 	echoContent yellow "6.更新geosite、geoip"
+    echoContent yellow "7.设置自动更新geo文件[每天凌晨更新]"
 	echoContent red "=============================================================="
 	read -r -p "请选择:" selectV2RayType
 	if [[ "${selectV2RayType}" == "1" ]]; then
@@ -1846,7 +1908,9 @@ v2rayVersionManageMenu() {
 	elif [[ "${selectV2RayType}" == "5" ]]; then
 		reloadCore
 	elif [[ "${selectXrayType}" == "6" ]]; then
-        updateGeoSite	
+	    updateGeoSite
+    elif [[ "${selectXrayType}" == "7" ]]; then
+        installCronUpdateGeo
 	fi
 }
 
@@ -1866,6 +1930,7 @@ xrayVersionManageMenu() {
 	echoContent yellow "5.打开Xray-core"
 	echoContent yellow "6.重启Xray-core"
 	echoContent yellow "7.更新geosite、geoip"
+    echoContent yellow "8.设置自动更新geo文件[每天凌晨更新]"
 	echoContent red "=============================================================="
 	read -r -p "请选择:" selectXrayType
 	if [[ "${selectXrayType}" == "1" ]]; then
@@ -1896,8 +1961,10 @@ xrayVersionManageMenu() {
 		handleXray start
 	elif [[ "${selectXrayType}" == "6" ]]; then
 		reloadCore
-	elif [[ "${selectXrayType}" == "7" ]]; then
-        updateGeoSite	
+    elif [[ "${selectXrayType}" == "7" ]]; then
+        updateGeoSite
+    elif [[ "${selectXrayType}" == "8" ]]; then
+        installCronUpdateGeo
 	fi
 
 }
@@ -2379,10 +2446,10 @@ initHysteriaPort() {
 	fi
 
 	if [[ -z "${hysteriaPort}" ]]; then
-		echoContent yellow "请输入Hysteria端口[例: 10000]，不可与其他服务重复"
+		echoContent yellow "请输入Hysteria端口[回车随机10000-30000]，不可与其他服务重复"
 		read -r -p "端口:" hysteriaPort
         if [[ -z "${hysteriaPort}" ]]; then
-            hysteriaPort=$((RANDOM % 50001 + 10000))
+            hysteriaPort=$((RANDOM % 20001 + 10000))
 		fi
 	fi
 	if [[ -z ${hysteriaPort} ]]; then
@@ -2454,6 +2521,110 @@ initHysteriaNetwork() {
 }
 EOF
 
+}
+
+# hy端口跳跃
+hysteriaPortHopping() {
+    if [[ -n "${portHoppingStart}" || -n "${portHoppingEnd}" ]]; then
+        echoContent red " ---> 已添加不可重复添加，可删除后重新添加"
+        exit 0
+    fi
+
+    echoContent skyBlue "\n进度 1/1 : 端口跳跃"
+    echoContent red "\n=============================================================="
+    echoContent yellow "# 注意事项\n"
+    echoContent yellow "仅支持UDP"
+    echoContent yellow "端口跳跃的起始位置为30000"
+    echoContent yellow "端口跳跃的结束位置为60000"
+    echoContent yellow "可以在30000-60000范围中选一段"
+    echoContent yellow "建议1000个左右"
+    echoContent yellow "网卡一般默认为en开头或者eth开头，不要选择lo\n"
+
+    echoContent yellow "请输入端口跳跃的范围，例如[30000-31000]"
+
+    read -r -p "范围:" hysteriaPortHoppingRange
+    if [[ -z "${hysteriaPortHoppingRange}" ]]; then
+        echoContent red " ---> 范围不可为空"
+        hysteriaPortHopping
+    elif echo "${hysteriaPortHoppingRange}" | grep -q "-"; then
+
+        local portStart=
+        local portEnd=
+        portStart=$(echo "${hysteriaPortHoppingRange}" | awk -F '-' '{print $1}')
+        portEnd=$(echo "${hysteriaPortHoppingRange}" | awk -F '-' '{print $2}')
+
+        if [[ -z "${portStart}" || -z "${portEnd}" ]]; then
+            echoContent red " ---> 范围不合法"
+            hysteriaPortHopping
+        elif ((portStart < 30000 || portStart > 60000 || portEnd < 30000 || portEnd > 60000 || portEnd < portStart)); then
+            echoContent red " ---> 范围不合法"
+            hysteriaPortHopping
+        else
+            echoContent green "\n端口范围: ${hysteriaPortHoppingRange}\n"
+            #            ip -4 addr show | awk '/inet /{print $NF ":" $2}' | awk '{print ""NR""":"$0}'
+            #            read -r -p "请选择对应网卡:" selectInterface
+            #            if ! ip -4 addr show | awk '/inet /{print $NF ":" $2}' | awk '{print ""NR""":"$0}' | grep -q "${selectInterface}:"; then
+            #                echoContent red " ---> 选择错误"
+            #                hysteriaPortHopping
+            #            else
+            iptables -t nat -A PREROUTING -p udp --dport "${portStart}:${portEnd}" -m comment --comment "mack-a_portHopping" -j DNAT --to-destination :${hysteriaPort}
+
+            if iptables-save | grep -q "mack-a_portHopping"; then
+                allowPort "${portStart}:${portEnd}" udp
+                echoContent green " ---> 端口跳跃添加成功"
+            else
+                echoContent red " ---> 端口跳跃添加失败"
+            fi
+            #            fi
+       fi
+
+    fi
+}
+
+# 读取端口跳跃的配置
+readHysteriaPortHopping() {
+    if [[ -n "${hysteriaPort}" ]]; then
+        #        interfaceName=$(ip -4 addr show | awk '/inet /{print $NF ":" $2}' | awk '{print ""NR""":"$0}' | grep "${selectInterface}:" | awk -F "[:]" '{print $2}')
+        if iptables-save | grep -q "mack-a_portHopping"; then
+            portHopping=
+            portHopping=$(iptables-save | grep "mack-a_portHopping" | cut -d " " -f 8)
+            portHoppingStart=$(echo "${portHopping}" | cut -d ":" -f 1)
+            portHoppingEnd=$(echo "${portHopping}" | cut -d ":" -f 2)
+        fi
+    fi
+}
+# 删除hysteria 端口条约iptables规则
+deleteHysteriaPortHoppingRules() {
+    iptables -t nat -L PREROUTING --line-numbers | grep "mack-a_portHopping" | awk '{print $1}' | while read -r line; do
+        iptables -t nat -D PREROUTING 1
+    done
+}
+hysteriaPortHoppingMenu() {
+    # 判断iptables是否存在
+    if ! find /usr/bin /usr/sbin | grep -q -w iptables; then
+        echoContent red " ---> 无法识别iptables工具，无法使用端口跳跃，退出安装"
+        exit 0
+    fi
+    readHysteriaConfig
+    readHysteriaPortHopping
+    echoContent skyBlue "\n进度 1/1 : 端口跳跃"
+    echoContent red "\n=============================================================="
+    echoContent yellow "1.添加端口跳跃"
+    echoContent yellow "2.删除端口跳跃"
+    echoContent yellow "3.查看端口跳跃"
+    read -r -p "范围:" selectPortHoppingStatus
+    if [[ "${selectPortHoppingStatus}" == "1" ]]; then
+        hysteriaPortHopping
+    elif [[ "${selectPortHoppingStatus}" == "2" ]]; then
+        if [[ -n "${portHopping}" ]]; then
+            deleteHysteriaPortHoppingRules
+            echoContent green " ---> 删除成功"
+        fi
+    elif [[ "${selectPortHoppingStatus}" == "3" ]]; then
+        echoContent green " ---> 当前端口跳跃范围为: ${portHoppingStart}-${portHoppingEnd}"
+    else
+        hysteriaPortHoppingMenu
+    fi
 }
 # 初始化Hysteria配置
 initHysteriaConfig() {
@@ -3508,15 +3679,21 @@ EOF
         local hysteriaEmail=
 		hysteriaEmail=$(echo "${email}" | awk -F "[_]" '{print $1}')_hysteria
 		echoContent yellow " ---> Hysteria(TLS)"
-		echoContent green "    hysteria://${currentHost}:${hysteriaPort}?protocol=${hysteriaProtocol}&auth=${id}&peer=${currentHost}&insecure=0&alpn=h3&upmbps=${hysteriaClientUploadSpeed}&downmbps=${hysteriaClientDownloadSpeed}#${hysteriaEmail}\n"
+        local clashMetaPortTmp="port: ${hysteriaPort}"
+        local mport=
+        if [[ -n "${portHoppingStart}" ]]; then
+            mport="mport=${portHoppingStart}-${portHoppingEnd}&"
+            clashMetaPortTmp="ports: ${portHoppingStart}-${portHoppingEnd}"
+        fi
+        echoContent green "    hysteria://${currentHost}:${hysteriaPort}?${mport}protocol=${hysteriaProtocol}&auth=${id}&peer=${currentHost}&insecure=0&alpn=h3&upmbps=${hysteriaClientUploadSpeed}&downmbps=${hysteriaClientDownloadSpeed}#${hysteriaEmail}\n"
 		cat <<EOF >>"/etc/v2ray-agent/subscribe_local/default/${user}"
-hysteria://${currentHost}:${hysteriaPort}?protocol=${hysteriaProtocol}&auth=${id}&peer=${currentHost}&insecure=0&alpn=h3&upmbps=${hysteriaClientUploadSpeed}&downmbps=${hysteriaClientDownloadSpeed}#${hysteriaEmail}
+hysteria://${currentHost}:${hysteriaPort}?${mport}protocol=${hysteriaProtocol}&auth=${id}&peer=${currentHost}&insecure=0&alpn=h3&upmbps=${hysteriaClientUploadSpeed}&downmbps=${hysteriaClientDownloadSpeed}#${hysteriaEmail}
 EOF
         cat <<EOF >>"/etc/v2ray-agent/subscribe_local/clashMeta/${user}"
   - name: "${hysteriaEmail}"
     type: hysteria
     server: ${currentHost}
-    port: ${hysteriaPort}
+    ${clashMetaPortTmp}
     auth_str: ${id}
     alpn:
      - h3
@@ -3526,7 +3703,10 @@ EOF
     sni: ${currentHost}
 EOF
 		echoContent yellow " ---> 二维码 Hysteria(TLS)"
-		echoContent green "    https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=hysteria%3A%2F%2F${currentHost}%3A${hysteriaPort}%3Fprotocol%3D${hysteriaProtocol}%26auth%3D${id}%26peer%3D${currentHost}%26insecure%3D0%26alpn%3Dh3%26upmbps%3D${hysteriaClientUploadSpeed}%26downmbps%3D${hysteriaClientDownloadSpeed}%23${hysteriaEmail}\n"
+        if [[ -n "${mport}" ]]; then
+            mport="mport%3D${portHoppingStart}-${portHoppingEnd}%26"
+        fi
+        echoContent green "    https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=hysteria%3A%2F%2F${currentHost}%3A${hysteriaPort}%3F${mport}protocol%3D${hysteriaProtocol}%26auth%3D${id}%26peer%3D${currentHost}%26insecure%3D0%26alpn%3Dh3%26upmbps%3D${hysteriaClientUploadSpeed}%26downmbps%3D${hysteriaClientDownloadSpeed}%23${hysteriaEmail}\n"
 	fi
 
 }
@@ -3537,6 +3717,7 @@ showAccounts() {
 	readInstallProtocolType
 	readConfigHostPathUUID
 	readHysteriaConfig
+    readHysteriaPortHopping
 
 	echoContent skyBlue "\n进度 $1/${totalProgress} : 账号"
 	local show
@@ -3982,8 +4163,6 @@ unInstall() {
 	echoContent green " ---> 卸载快捷方式完成"
 	echoContent green " ---> 卸载v2ray-agent脚本完成"
 }
-
-#updateGeoSite
 
 # 修改V2Ray CDN节点
 updateV2RayCDN() {
@@ -5564,6 +5743,7 @@ customV2RayInstall() {
 	fi
 	if [[ "${selectCustomInstallType}" =~ ^[0-5]+$ ]]; then
 		cleanUp xrayClean
+        checkBTPanel
 		totalProgress=17
 		installTools 1
 		# 申请tls
@@ -5616,8 +5796,8 @@ customXrayInstall() {
         if ! echo "${selectCustomInstallType}" | grep -q "0"; then
             selectCustomInstallType="0${selectCustomInstallType}"
         fi
-
 		cleanUp v2rayClean
+        checkBTPanel
 		totalProgress=12
 		installTools 1
 		if [[ -n "${btDomain}" ]]; then
@@ -5640,14 +5820,14 @@ customXrayInstall() {
 			customCDNIP 5
 		fi
 		if [[ -n "${btDomain}" ]]; then
-		    echoContent skyBlue "\n进度  6/${totalProgress} : 检测到宝塔面板，是否 安装/重新安装 伪装站点？"
-			echoContent red "=============================================================="
-			echoContent yellow "# 注意事项"
-			echoContent yellow "会清空当前安装网站下面的静态目录，如已自定义安装过请选择 [n]\n"
-			read -r -p "请选择[y/n]:" nginxBlogBTStatus
-			if [[ "${nginxBlogBTStatus}" == "y" ]]; then
-			    nginxBlog 6
-			fi
+            echoContent skyBlue "\n进度  6/${totalProgress} : 检测到宝塔面板，跳过伪装网站"
+            #            echoContent red "=============================================================="
+            #            echoContent yellow "# 注意事项"
+            #            echoContent yellow "会清空当前安装网站下面的静态目录，如已自定义安装过请选择 [n]\n"
+            #            read -r -p "请选择[y/n]:" nginxBlogBTStatus
+            #            if [[ "${nginxBlogBTStatus}" == "y" ]]; then
+            #                nginxBlog 6
+            #            fi
 		else
 		    nginxBlog 6
 		fi
@@ -5714,6 +5894,7 @@ selectCoreInstall() {
 # v2ray-core 安装
 v2rayCoreInstall() {
 	cleanUp xrayClean
+    checkBTPanel
 	selectCustomInstallType=
 	totalProgress=13
 	installTools 2
@@ -5749,6 +5930,7 @@ v2rayCoreInstall() {
 # xray-core 安装
 xrayCoreInstall() {
 	cleanUp v2rayClean
+    checkBTPanel
 	selectCustomInstallType=
 	totalProgress=13
 	installTools 2
@@ -5776,18 +5958,17 @@ xrayCoreInstall() {
 	cleanUp v2rayDel
 	installCronTLS 10
 	if [[ -n "${btDomain}" ]]; then
-	    echoContent skyBlue "\n进度  11/${totalProgress} : 检测到宝塔面板，是否 安装/重新安装 伪装站点？"
-		echoContent red "=============================================================="
-		echoContent yellow "# 注意事项"
-		echoContent yellow "会清空当前安装网站下面的静态目录，如已自定义安装过请选择 [n]\n"
-		read -r -p "请选择[y/n]:" nginxBlogBTStatus
-        if [[ "${nginxBlogBTStatus}" == "y" ]]; then
-		    nginxBlog 11
-		fi
+        echoContent skyBlue "\n进度  11/${totalProgress} : 检测到宝塔面板，跳过伪装网站"
+        #        echoContent red "=============================================================="
+        #        echoContent yellow "# 注意事项"
+        #        echoContent yellow "会清空当前安装网站下面的静态目录，如已自定义安装过请选择 [n]\n"
+        #        read -r -p "请选择[y/n]:" nginxBlogBTStatus
+        #        if [[ "${nginxBlogBTStatus}" == "y" ]]; then
+        #            nginxBlog 11
+        #        fi
 	else
 	    nginxBlog 11
 	fi
-
 	updateRevisionNginxConf
 	handleXray stop
 	sleep 2
@@ -5810,7 +5991,7 @@ hysteriaCoreInstall() {
 	initHysteriaConfig 2
 	installHysteriaService 3
 	reloadCore
-	showAccounts 5
+	showAccounts 4
 }
 # 卸载 hysteria
 unInstallHysteriaCore() {
@@ -5819,6 +6000,7 @@ unInstallHysteriaCore() {
 		echoContent red "\n ---> 未安装"
 		exit 0
 	fi
+    deleteHysteriaPortHoppingRules
 	handleHysteria stop
 	rm -rf /etc/v2ray-agent/hysteria/*
 	rm ${configPath}02_socks_inbounds_hysteria.json
@@ -5841,10 +6023,14 @@ coreVersionManageMenu() {
 		v2rayVersionManageMenu 1
 	fi
 }
-# 定时任务检查证书
-cronRenewTLS() {
-	if [[ "${renewTLS}" == "RenewTLS" ]]; then
-		renewalTLS
+# 定时任务检查
+cronFunction() {
+	if [[ "${cronName}" == "RenewTLS" ]]; then
+	    renewalTLS
+		exit 0
+	elif [[ "${cronName}" == "UpdateGeo" ]]; then
+	    updateGeoSite >>/etc/v2ray-agent/crontab_updateGeoSite.log
+		echoContent green " ---> geo更新日期:$(date "+%F %H:%M:%S")" >>/etc/v2ray-agent/crontab_updateGeoSite.log
 		exit 0
 	fi
 }
@@ -6439,9 +6625,9 @@ manageHysteria() {
 	local hysteriaStatus=
 	if [[ -n "${hysteriaConfigPath}" ]]; then
 		echoContent yellow "1.重新安装"
-		echoContent yellow "2.卸载"
-		echoContent yellow "3.core管理"
-		echoContent yellow "4.查看日志"
+        echoContent yellow "3.端口跳跃管理"
+        echoContent yellow "4.core管理"
+        echoContent yellow "5.查看日志"
 		hysteriaStatus=true
 	else
 		echoContent yellow "1.安装"
@@ -6454,8 +6640,9 @@ manageHysteria() {
 	elif [[ "${installHysteriaStatus}" == "2" && "${hysteriaStatus}" == "true" ]]; then
 		unInstallHysteriaCore
 	elif [[ "${installHysteriaStatus}" == "3" && "${hysteriaStatus}" == "true" ]]; then
-		hysteriaVersionManageMenu 1
+        hysteriaPortHoppingMenu
 	elif [[ "${installHysteriaStatus}" == "4" && "${hysteriaStatus}" == "true" ]]; then
+    elif [[ "${installHysteriaStatus}" == "5" && "${hysteriaStatus}" == "true" ]]; then
 		journalctl -fu hysteria
 	fi
 }
@@ -6493,7 +6680,7 @@ menu() {
 	echoContent red "\n=============================================================="
 	echoContent green "原作者：mack-a"
 	echoContent green "作者：Wizard89"
-	echoContent green "当前版本：v2.7.0"
+	echoContent green "当前版本：v2.7.1"
 	echoContent green "Github：https://github.com/Wizard89/v2ray-agent"
 	echoContent green "描述：八合一共存脚本\c"
 	showInstallStatus
@@ -6598,5 +6785,5 @@ menu() {
 		;;
 	esac
 }
-cronRenewTLS
+cronFunction
 menu
