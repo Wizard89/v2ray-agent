@@ -642,7 +642,6 @@ readInstallProtocolType
 readConfigHostPathUUID
 readInstallAlpn
 readCustomPort
-readXrayCoreRealityConfig
 # -------------------------------------------------------------
 
 # 初始化安装目录
@@ -6634,17 +6633,18 @@ manageHysteria() {
 	fi
 
 	echoContent red "=============================================================="
-	read -r -p "请选择:" installHysteriaStatus
-	if [[ "${installHysteriaStatus}" == "1" ]]; then
-		hysteriaCoreInstall
-	elif [[ "${installHysteriaStatus}" == "2" && "${hysteriaStatus}" == "true" ]]; then
-		unInstallHysteriaCore
-	elif [[ "${installHysteriaStatus}" == "3" && "${hysteriaStatus}" == "true" ]]; then
+    read -r -p "请选择:" installHysteriaStatus
+    if [[ "${installHysteriaStatus}" == "1" ]]; then
+        hysteriaCoreInstall
+    elif [[ "${installHysteriaStatus}" == "2" && "${hysteriaStatus}" == "true" ]]; then
+        unInstallHysteriaCore
+    elif [[ "${installHysteriaStatus}" == "3" && "${hysteriaStatus}" == "true" ]]; then
         hysteriaPortHoppingMenu
-	elif [[ "${installHysteriaStatus}" == "4" && "${hysteriaStatus}" == "true" ]]; then
+    elif [[ "${installHysteriaStatus}" == "4" && "${hysteriaStatus}" == "true" ]]; then
+        hysteriaVersionManageMenu 1
     elif [[ "${installHysteriaStatus}" == "5" && "${hysteriaStatus}" == "true" ]]; then
-		journalctl -fu hysteria
-	fi
+        journalctl -fu hysteria
+    fi
 }
 # hysteria版本管理
 hysteriaVersionManageMenu() {
