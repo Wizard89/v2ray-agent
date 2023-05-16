@@ -7037,7 +7037,6 @@ manageReality() {
 
 # hysteria管理
 manageHysteria() {
-
 	echoContent skyBlue "\n进度  1/1 : Hysteria管理"
 	echoContent red "\n=============================================================="
 	local hysteriaStatus=
@@ -7095,6 +7094,7 @@ hysteriaVersionManageMenu() {
 }
 # 主菜单
 menu() {
+
 	cd "$HOME" || exit
 	echoContent red "\n=============================================================="
 	echoContent green "原作者：mack-a"
@@ -7103,7 +7103,8 @@ menu() {
 	echoContent green "Github：https://github.com/Wizard89/v2ray-agent"
 	echoContent green "描述：八合一共存脚本\c"
 	showInstallStatus
-	echoContent red "\n=============================================================="
+    checkWgetShowProgress
+	echoContent red "=============================================================="
 	if [[ -n "${coreInstallType}" ]]; then
 		echoContent yellow "1.重新安装"
 	else
@@ -7158,49 +7159,52 @@ menu() {
 	5)
 		manageAccount 1
 		;;
-	6)
+    6)
+        manageAccount 1
+        ;;
+	7)
 		updateNginxBlog 1
 		;;
-	7)
+	8)
 		renewalTLS 1
 		;;
-	8)
+	9)
 		updateV2RayCDN 1
 		;;
-	9)
+	10)
 		ipv6Routing 1
 		;;
-	10)
+	11)
 		warpRouting 1
 		;;
-	11)
+	12)
 		streamingToolbox 1
 		;;
-	12)
+	13)
 		addCorePort 1
 		;;
-	13)
+	14)
 		btTools 1
 		;;
-	14)
+	15)
 		switchAlpn 1
 		;;
-	15)
+	16)
 		blacklist 1
 		;;
-	16)
+	17)
 		coreVersionManageMenu 1
 		;;
-	17)
+	18)
 		updateV2RayAgent 1
 		;;
-	18)
+	19)
 		bbrInstall
 		;;
-	19)
+	20)
 		checkLog 1
 		;;
-	20)
+	21)
 		unInstall 1
 		;;
 	esac
