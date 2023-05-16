@@ -163,6 +163,9 @@ initVar() {
 	# v2ray-core、xray-core配置文件的路径
 	configPath=
 
+    # xray-core reality状态
+    realityStatus=
+
 	# hysteria 配置文件的路径
 	hysteriaConfigPath=
     #    interfaceName=
@@ -253,6 +256,20 @@ initVar() {
 	# hysteria上行速度
 	hysteriaClientUploadSpeed=
 
+    # Reality
+    realityPrivateKey=
+    realityServerNames=
+    realityDestDomain=
+
+    # 端口状态
+    isPortOpen80=
+    # 通配符域名状态
+    wildcardDomainStatus=
+    # 通过nginx检查的端口
+    nginxIPort=
+
+    # wget show progress
+    wgetShowProgressStatus=
 }
 
 # 读取tls证书详情
@@ -300,6 +317,9 @@ readInstallType() {
 				configPath=/etc/v2ray-agent/xray/conf/
 				ctlPath=/etc/v2ray-agent/xray/xray
 				coreInstallType=1
+                if [[ -f "${configPath}07_VLESS_vision_reality_inbounds.json" ]]; then
+                    realityStatus=1
+				fi
 			fi
 		fi
 
@@ -341,6 +361,12 @@ readInstallProtocolType() {
 		if echo "${row}" | grep -q VLESS_gRPC_inbounds; then
 			currentInstallProtocolType=${currentInstallProtocolType}'5'
 		fi
+        if echo "${row}" | grep -q VLESS_vision_reality_inbounds; then
+            currentInstallProtocolType=${currentInstallProtocolType}'7'
+        fi
+        if echo "${row}" | grep -q VLESS_reality_fallback_grpc_inbounds; then
+            currentInstallProtocolType=${currentInstallProtocolType}'8'
+        fi
 	done < <(find ${configPath} -name "*inbounds.json" | awk -F "[.]" '{print $1}')
 
 	if [[ -n "${hysteriaConfigPath}" ]]; then
@@ -406,7 +432,7 @@ allowPort() {
 		local updateFirewalldStatus=
 		if ! iptables -L | grep -q "$1(Wizard89)"; then
 			updateFirewalldStatus=true
-			iptables -I INPUT -p tcp --dport "$1" -m comment --comment "allow $1(Wizard89)" -j ACCEPT
+			iptables -I INPUT -p ${type} --dport "$1" -m comment --comment "allow $1(Wizard89)" -j ACCEPT
 		fi
 
 		if echo "${updateFirewalldStatus}" | grep -q "true"; then
@@ -422,7 +448,7 @@ allowPort() {
 
 	elif systemctl status firewalld 2>/dev/null | grep -q "active (running)"; then
 		local updateFirewalldStatus=
-		if ! firewall-cmd --list-ports --permanent | grep -qw "$1/tcp"; then
+		if ! firewall-cmd --list-ports --permanent | grep -qw "$1/${type}"; then
 			updateFirewalldStatus=true
             local firewallPort=$1
 
@@ -493,6 +519,20 @@ readHysteriaConfig() {
 		hysteriaProtocol=$(jq -r .protocol <"${hysteriaConfigPath}config.json")
 	fi
 }
+# 读取xray reality配置
+readXrayCoreRealityConfig() {
+    currentRealityServerNames=
+    currentRealityPublicKey=
+    currentRealityPrivateKey=
+    currentRealityPort=
+
+    if [[ -n "${realityStatus}" ]]; then
+        currentRealityServerNames=$(jq -r .inbounds[0].streamSettings.realitySettings.serverNames[0] "${configPath}07_VLESS_vision_reality_inbounds.json")
+        currentRealityPublicKey=$(jq -r .inbounds[0].streamSettings.realitySettings.publicKey "${configPath}07_VLESS_vision_reality_inbounds.json")
+        currentRealityPrivateKey=$(jq -r .inbounds[0].streamSettings.realitySettings.privateKey "${configPath}07_VLESS_vision_reality_inbounds.json")
+        currentRealityPort=$(jq -r .inbounds[0].port "${configPath}07_VLESS_vision_reality_inbounds.json")
+    fi
+}
 
 # 检查文件目录以及path路径
 readConfigHostPathUUID() {
@@ -553,7 +593,23 @@ readConfigHostPathUUID() {
             currentUUID=$(jq -r .inbounds[0].settings.clients[0].id ${configPath}${frontingType}.json)
             currentClients=$(jq -r .inbounds[0].settings.clients ${configPath}${frontingType}.json)
         fi
-	fi
+
+        # reality
+        if [[ -n "${realityStatus}" && -z "${currentClients}" ]]; then
+            currentUUID=$(jq -r .inbounds[0].settings.clients[0].id ${configPath}07_VLESS_vision_reality_inbounds.json)
+            currentClients=$(jq -r .inbounds[0].settings.clients ${configPath}07_VLESS_vision_reality_inbounds.json)
+
+        fi
+    elif [[ "${coreInstallType}" == "2" ]]; then
+        currentHost=$(jq -r .inbounds[0].streamSettings.tlsSettings.certificates[0].certificateFile ${configPath}${frontingType}.json | awk -F '[t][l][s][/]' '{print $2}' | awk -F '[.][c][r][t]' '{print $1}')
+        currentAdd=$(jq -r .inbounds[0].settings.clients[0].add ${configPath}${frontingType}.json)
+
+        if [[ "${currentAdd}" == "null" ]]; then
+            currentAdd=${currentHost}
+        fi
+        currentUUID=$(jq -r .inbounds[0].settings.clients[0].id ${configPath}${frontingType}.json)
+        currentPort=$(jq .inbounds[0].port ${configPath}${frontingType}.json)
+    fi
 }
 
 # 状态展示
@@ -612,6 +668,12 @@ showInstallStatus() {
 		if echo ${currentInstallProtocolType} | grep -q 5; then
 			echoContent yellow "VLESS+gRPC[TLS] \c"
 		fi
+        if echo ${currentInstallProtocolType} | grep -q 7; then
+            echoContent yellow "VLESS+Reality+Vision \c"
+        fi
+        if echo ${currentInstallProtocolType} | grep -q 8; then
+            echoContent yellow "VLESS+Reality+gRPC \c"
+        fi
 	fi
 }
 
@@ -633,7 +695,6 @@ cleanUp() {
 		rm -rf /etc/v2ray-agent/xray/*
 	fi
 }
-
 initVar "$1"
 checkSystem
 checkCPUVendor
@@ -642,6 +703,7 @@ readInstallProtocolType
 readConfigHostPathUUID
 readInstallAlpn
 readCustomPort
+readXrayCoreRealityConfig
 # -------------------------------------------------------------
 
 # 初始化安装目录
@@ -961,7 +1023,6 @@ initTLSNginxConfig() {
 	handleNginx stop
 	echoContent skyBlue "\n进度  $1/${totalProgress} : 初始化Nginx申请证书配置"
 	if [[ -n "${currentHost}" ]]; then
-            echo "读取到上次安装记录，上次安装时的域名： ${currentHost}"
 		echo
 		read -r -p "读取到上次安装记录，是否使用上次安装时的域名 ？[y/n]:" historyDomainStatus
 		if [[ "${historyDomainStatus}" == "y" ]]; then
@@ -994,13 +1055,9 @@ initTLSNginxConfig() {
 
 		cat <<EOF >${nginxConfigPath}alone.conf
 server {
-    listen ${port};
-    listen [::]:${port};
+    listen ${nginxIPort};
+    listen [::]:${nginxIPort};
     server_name ${domain};
-	root ${nginxStaticPath};
-    location ~ /.well-known {
-    	allow all;
-    }
     location /test {
     	return 200 'fjkvymb6len';
     }
@@ -1066,22 +1123,22 @@ server {
     	if (\$content_type !~ "application/grpc") {
     		return 404;
     	}
- 		    client_max_body_size 0;
-		    grpc_set_header X-Real-IP \$proxy_add_x_forwarded_for;
-		    client_body_timeout 1071906480m;
-		    grpc_read_timeout 1071906480m;
-		    grpc_pass grpc://127.0.0.1:31301;
+ 		client_max_body_size 0;
+		grpc_set_header X-Real-IP \$proxy_add_x_forwarded_for;
+		client_body_timeout 1071906480m;
+		grpc_read_timeout 1071906480m;
+		grpc_pass grpc://127.0.0.1:31301;
 	}
 
 	location /${currentPath}trojangrpc {
-		    if (\$content_type !~ "application/grpc") {
+		if (\$content_type !~ "application/grpc") {
             		return 404;
-		    }
- 		    client_max_body_size 0;
-		    grpc_set_header X-Real-IP \$proxy_add_x_forwarded_for;
-		    client_body_timeout 1071906480m;
-		    grpc_read_timeout 1071906480m;
-		    grpc_pass grpc://127.0.0.1:31304;
+		}
+ 		client_max_body_size 0;
+		grpc_set_header X-Real-IP \$proxy_add_x_forwarded_for;
+		client_body_timeout 1071906480m;
+		grpc_read_timeout 1071906480m;
+		grpc_pass grpc://127.0.0.1:31304;
 	}
 	location / {
         	add_header Strict-Transport-Security "max-age=15552000; preload" always;
@@ -1140,16 +1197,16 @@ EOF
 
 		cat <<EOF >>${nginxConfigPath}alone.conf
 server {
-	    listen 127.0.0.1:31302 http2;
-	    server_name ${domain};
-	    root ${nginxStaticPath};
+	listen 127.0.0.1:31302 http2;
+	server_name ${domain};
+	root ${nginxStaticPath};
 
     location ~ ^/s/(clashMeta|default|clashMetaProfiles)/(.*) {
             default_type 'text/plain; charset=utf-8';
             alias /etc/v2ray-agent/subscribe/\$1/\$2;
         }
-	    location / {
-	    }  
+	location / {
+	}  
 }
 EOF
 	fi
@@ -1174,46 +1231,23 @@ EOF
 # 检查ip
 checkIP() {
 	echoContent skyBlue "\n ---> 检查域名ip中"
-	local checkDomain=${domain}
-	if [[ -n "${customPort}" ]]; then
-		checkDomain="http://${domain}:${customPort}"
-	fi
-	localIP=$(curl -s -m 2 "${checkDomain}/ip")
 
+    localIP=$(curl -s -m 2 "http://${domain}:${nginxIPort}/ip")
 	handleNginx stop
-	if [[ -z ${localIP} ]] || ! echo "${localIP}" | sed '1{s/[^(]*(//;s/).*//;q}' | grep -q '\.' && ! echo "${localIP}" | sed '1{s/[^(]*(//;s/).*//;q}' | grep -q ':'; then
-		echoContent red "\n ---> 未检测到当前域名的ip"
-		echoContent skyBlue " ---> 请依次进行下列检查"
-		echoContent yellow " --->  1.检查域名是否书写正确"
-		echoContent yellow " --->  2.检查域名dns解析是否正确"
-		echoContent yellow " --->  3.如解析正确，请等待dns生效，预计三分钟内生效"
-		echoContent yellow " --->  4.如报Nginx启动问题，请手动启动nginx查看错误，如自己无法处理请提issues"
-		echoContent yellow " --->  5.错误日志:${localIP}"
-		echo
+
+    if [[ -z ${localIP} ]] || ! echo "${localIP}" | sed '1{s/[^(]*(//;s/).*//;q}' | grep -q '\.' && ! echo "${localIP}" | sed '1{s/[^(]*(//;s/).*//;q}' | grep -q ':'; then
+        echoContent red "\n ---> 未检测到当前域名的ip"
+        echoContent skyBlue " ---> 请依次进行下列检查"
+        echoContent yellow " --->  1.检查域名是否书写正确"
+        echoContent yellow " --->  2.检查域名dns解析是否正确"
+        echoContent yellow " --->  3.如解析正确，请等待dns生效，预计三分钟内生效"
+        echoContent yellow " --->  4.如报Nginx启动问题，请手动启动nginx查看错误，如自己无法处理请提issues"
+        echo
 		echoContent skyBlue " ---> 如以上设置都正确，请重新安装纯净系统后再次尝试"
 
 		if [[ -n ${localIP} ]]; then
 			echoContent yellow " ---> 检测返回值异常，建议手动卸载nginx后重新执行脚本"
-		fi
-		local portFirewallPortStatus="443、80"
-
-		if [[ -n "${customPort}" ]]; then
-			portFirewallPortStatus="${customPort}"
-		fi
-		echoContent red " ---> 请检查防火墙规则是否开放${portFirewallPortStatus}\n"
-		read -r -p "是否通过脚本修改防火墙规则开放${portFirewallPortStatus}端口？[y/n]:" allPortFirewallStatus
-
-		if [[ ${allPortFirewallStatus} == "y" ]]; then
-			if [[ -n "${customPort}" ]]; then
-				allowPort "${customPort}"
-			else
-				allowPort 80
-				allowPort 443
-			fi
-
-			handleNginx start
-			checkIP
-		else
+            echoContent red " ---> 异常结果：${localIP}"
 			exit 0
 		fi
 	else
@@ -1539,16 +1573,16 @@ randomPathFunction() {
 		echoContent yellow "请输入自定义路径[例: alone]，不需要斜杠，[回车]随机路径"
 		read -r -p '路径:' customPath
 		if [[ -z "${customPath}" ]]; then
-				    initRandomPath                        
-                    currentPath=${customPath}
-                else
-                    if [[ "${customPath: -2}" == "ws" ]]; then
-                        echo
-                        echoContent red " ---> 自定义path结尾不可用ws结尾，否则无法区分分流路径"
-                        randomPathFunction "$1"
-                    else
-                        currentPath=${customPath}
-                    fi			
+			initRandomPath                        
+            currentPath=${customPath}
+        else
+            if [[ "${customPath: -2}" == "ws" ]]; then
+                echo
+                echoContent red " ---> 自定义path结尾不可用ws结尾，否则无法区分分流路径"
+                randomPathFunction "$1"
+            else
+                currentPath=${customPath}
+            fi			
 		fi
 	fi
 	echoContent yellow "\n path:${currentPath}"
@@ -1997,12 +2031,11 @@ updateV2Ray() {
 			version=${v2rayCoreVersion}
 		fi
 		echoContent green " ---> v2ray-core版本:${version}"
-
-		if wget --help | grep -q show-progress; then
-			wget -c -q --show-progress -P /etc/v2ray-agent/v2ray/ "https://github.com/v2fly/v2ray-core/releases/download/${version}/${v2rayCoreCPUVendor}.zip"
-		else
-			wget -c -P "/etc/v2ray-agent/v2ray/ https://github.com/v2fly/v2ray-core/releases/download/${version}/${v2rayCoreCPUVendor}.zip" >/dev/null 2>&1
-		fi
+        #        if wget --help | grep -q show-progress; then
+		wget -c -q --show-progress -P /etc/v2ray-agent/v2ray/ "https://github.com/v2fly/v2ray-core/releases/download/${version}/${v2rayCoreCPUVendor}.zip"
+        #        else
+        #            wget -c -P "/etc/v2ray-agent/v2ray/ https://github.com/v2fly/v2ray-core/releases/download/${version}/${v2rayCoreCPUVendor}.zip" >/dev/null 2>&1
+        #        fi
 
 		unzip -o "/etc/v2ray-agent/v2ray/${v2rayCoreCPUVendor}.zip" -d /etc/v2ray-agent/v2ray >/dev/null
 		rm -rf "/etc/v2ray-agent/v2ray/${v2rayCoreCPUVendor}.zip"
@@ -2321,6 +2354,7 @@ handleXray() {
 		fi
 	fi
 }
+
 # 读取用户数据并初始化
 initXrayClients() {
     local type=$1
@@ -2383,6 +2417,20 @@ initXrayClients() {
         # hysteria
         if echo "${type}" | grep -q "6"; then
             users=$(echo "${users}" | jq -r ". +=[\"${uuid}\"]")
+        fi
+
+        # vless reality vision
+        if echo "${type}" | grep -q "7"; then
+            currentUser="{\"id\":\"${uuid}\",\"email\":\"${email}-vless_reality_vision\",\"flow\":\"xtls-rprx-vision\"}"
+
+            users=$(echo "${users}" | jq -r ". +=[${currentUser}]")
+        fi
+
+        # vless reality grpc
+        if echo "${type}" | grep -q "8"; then
+            currentUser="{\"id\":\"${uuid}\",\"email\":\"${email}-vless_reality_grpc\",\"flow\":\"\"}"
+
+            users=$(echo "${users}" | jq -r ". +=[${currentUser}]")
         fi
 
     done < <(echo "${currentClients}" | jq -c '.[]')
@@ -2566,9 +2614,9 @@ hysteriaPortHopping() {
             #                echoContent red " ---> 选择错误"
             #                hysteriaPortHopping
             #            else
-            iptables -t nat -A PREROUTING -p udp --dport "${portStart}:${portEnd}" -m comment --comment "mack-a_portHopping" -j DNAT --to-destination :${hysteriaPort}
+            iptables -t nat -A PREROUTING -p udp --dport "${portStart}:${portEnd}" -m comment --comment "Wizard89_portHopping" -j DNAT --to-destination :${hysteriaPort}
 
-            if iptables-save | grep -q "mack-a_portHopping"; then
+            if iptables-save | grep -q "Wizard89_portHopping"; then
                 allowPort "${portStart}:${portEnd}" udp
                 echoContent green " ---> 端口跳跃添加成功"
             else
@@ -2584,9 +2632,9 @@ hysteriaPortHopping() {
 readHysteriaPortHopping() {
     if [[ -n "${hysteriaPort}" ]]; then
         #        interfaceName=$(ip -4 addr show | awk '/inet /{print $NF ":" $2}' | awk '{print ""NR""":"$0}' | grep "${selectInterface}:" | awk -F "[:]" '{print $2}')
-        if iptables-save | grep -q "mack-a_portHopping"; then
+        if iptables-save | grep -q "Wizard89_portHopping"; then
             portHopping=
-            portHopping=$(iptables-save | grep "mack-a_portHopping" | cut -d " " -f 8)
+            portHopping=$(iptables-save | grep "Wizard89_portHopping" | cut -d " " -f 8)
             portHoppingStart=$(echo "${portHopping}" | cut -d ":" -f 1)
             portHoppingEnd=$(echo "${portHopping}" | cut -d ":" -f 2)
         fi
@@ -2594,7 +2642,7 @@ readHysteriaPortHopping() {
 }
 # 删除hysteria 端口条约iptables规则
 deleteHysteriaPortHoppingRules() {
-    iptables -t nat -L PREROUTING --line-numbers | grep "mack-a_portHopping" | awk '{print $1}' | while read -r line; do
+    iptables -t nat -L PREROUTING --line-numbers | grep "Wizard89_portHopping" | awk '{print $1}' | while read -r line; do
         iptables -t nat -D PREROUTING 1
     done
 }
@@ -3452,6 +3500,86 @@ EOF
     else
         rm /etc/v2ray-agent/xray/conf/02_VLESS_TCP_inbounds.json >/dev/null 2>&1
     fi
+
+    # VLESS_TCP/reality
+    if echo "${selectCustomInstallType}" | grep -q 7 || [[ "$1" == "all" ]]; then
+        echoContent skyBlue "\n===================== 配置VLESS+Reality =====================\n"
+        initRealityPort
+        initRealityDest
+        initRealityClientServersName
+        initRealityKey
+
+        cat <<EOF >/etc/v2ray-agent/xray/conf/07_VLESS_vision_reality_inbounds.json
+{
+  "inbounds": [
+    {
+      "port": ${realityPort},
+      "protocol": "vless",
+      "tag": "VLESSReality",
+      "settings": {
+        "clients": $(initXrayClients 7),
+        "decryption": "none",
+        "fallbacks":[
+            {
+                "dest": "31305",
+                "xver": 1
+            }
+        ]
+      },
+      "streamSettings": {
+        "network": "tcp",
+        "security": "reality",
+        "realitySettings": {
+            "show": false,
+            "dest": "${realityDestDomain}",
+            "xver": 0,
+            "serverNames": [
+                ${realityServerNames}
+            ],
+            "privateKey": "${realityPrivateKey}",
+            "publicKey": "${realityPublicKey}",
+            "maxTimeDiff": 70000,
+            "shortIds": [
+                ""
+            ]
+        }
+      }
+    }
+  ]
+}
+EOF
+
+        cat <<EOF >/etc/v2ray-agent/xray/conf/08_VLESS_reality_fallback_grpc_inbounds.json
+{
+  "inbounds": [
+    {
+      "port": 31305,
+      "listen": "127.0.0.1",
+      "protocol": "vless",
+      "tag": "VLESSRealityGRPC",
+      "settings": {
+        "clients": $(initXrayClients 8),
+        "decryption": "none"
+      },
+      "streamSettings": {
+            "network": "grpc",
+            "grpcSettings": {
+                "serviceName": "grpc",
+                "multiMode": true
+            },
+            "sockopt": {
+                "acceptProxyProtocol": true
+            }
+      }
+    }
+  ]
+}
+EOF
+
+    else
+        rm /etc/v2ray-agent/xray/conf/07_VLESS_vision_reality_inbounds.json >/dev/null 2>&1
+        rm /etc/v2ray-agent/xray/conf/08_VLESS_reality_fallback_grpc_inbounds.json >/dev/null 2>&1
+    fi
 }
 # 初始化Xray配置
 # 自定义CDN IP
@@ -3706,6 +3834,60 @@ EOF
             mport="mport%3D${portHoppingStart}-${portHoppingEnd}%26"
         fi
         echoContent green "    https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=hysteria%3A%2F%2F${currentHost}%3A${hysteriaPort}%3F${mport}protocol%3D${hysteriaProtocol}%26auth%3D${id}%26peer%3D${currentHost}%26insecure%3D0%26alpn%3Dh3%26upmbps%3D${hysteriaClientUploadSpeed}%26downmbps%3D${hysteriaClientDownloadSpeed}%23${hysteriaEmail}\n"
+    elif [[ "${type}" == "vlessReality" ]]; then
+        echoContent yellow " ---> 通用格式(VLESS+reality+uTLS+Vision)"
+        echoContent green "    vless://${id}@$(getPublicIP):${currentRealityPort}?encryption=none&security=reality&type=tcp&sni=${currentRealityServerNames}&fp=chrome&pbk=${currentRealityPublicKey}&flow=xtls-rprx-vision#${email}\n"
+
+        echoContent yellow " ---> 格式化明文(VLESS+reality+uTLS+Vision)"
+        echoContent green "协议类型:VLESS reality，地址:$(getPublicIP)，publicKey:${currentRealityPublicKey}，serverNames：${currentRealityServerNames}，端口:${currentRealityPort}，用户ID:${id}，传输方式:tcp，账户名:${email}\n"
+        cat <<EOF >>"/etc/v2ray-agent/subscribe_local/default/${user}"
+vless://${id}@$(getPublicIP):${currentRealityPort}?encryption=none&security=reality&type=tcp&sni=${currentRealityServerNames}&fp=chrome&pbk=${currentRealityPublicKey}&flow=xtls-rprx-vision#${email}
+EOF
+        cat <<EOF >>"/etc/v2ray-agent/subscribe_local/clashMeta/${user}"
+  - name: "${email}"
+    type: vless
+    server: $(getPublicIP)
+    port: ${currentRealityPort}
+    uuid: ${id}
+    network: tcp
+    tls: true
+    udp: true
+    flow: xtls-rprx-vision
+    servername: ${currentRealityServerNames}
+    reality-opts:
+      public-key: ${currentRealityPublicKey}
+    client-fingerprint: chrome
+EOF
+        echoContent yellow " ---> 二维码 VLESS(VLESS+reality+uTLS+Vision)"
+        echoContent green "    https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=vless%3A%2F%2F${id}%40$(getPublicIP)%3A${currentRealityPort}%3Fencryption%3Dnone%26security%3Dreality%26type%3Dtcp%26sni%3D${currentRealityServerNames}%26fp%3Dchrome%26pbk%3D${currentRealityPublicKey}%26flow%3Dxtls-rprx-vision%23${email}\n"
+
+    elif [[ "${type}" == "vlessRealityGRPC" ]]; then
+        echoContent yellow " ---> 通用格式(VLESS+reality+uTLS+gRPC)"
+        echoContent green "    vless://${id}@$(getPublicIP):${currentRealityPort}?encryption=none&security=reality&type=grpc&sni=${currentRealityServerNames}&fp=chrome&pbk=${currentRealityPublicKey}&path=grpc&serviceName=grpc#${email}\n"
+
+        echoContent yellow " ---> 格式化明文(VLESS+reality+uTLS+gRPC)"
+        echoContent green "协议类型:VLESS reality，serviceName:grpc，地址:$(getPublicIP)，publicKey:${currentRealityPublicKey}，serverNames：${currentRealityServerNames}，端口:${currentRealityPort}，用户ID:${id}，传输方式:gRPC，client-fingerprint：chrome，账户名:${email}\n"
+        cat <<EOF >>"/etc/v2ray-agent/subscribe_local/default/${user}"
+vless://${id}@$(getPublicIP):${currentRealityPort}?encryption=none&security=reality&type=grpc&sni=${currentRealityServerNames}&fp=chrome&pbk=${currentRealityPublicKey}&path=grpc&serviceName=grpc#${email}
+EOF
+        cat <<EOF >>"/etc/v2ray-agent/subscribe_local/clashMeta/${user}"
+  - name: "${email}"
+    type: vless
+    server: $(getPublicIP)
+    port: ${currentRealityPort}
+    uuid: ${id}
+    network: grpc
+    tls: true
+    udp: true
+    servername: ${currentRealityServerNames}
+    reality-opts:
+      public-key: ${currentRealityPublicKey}
+    grpc-opts:
+      grpc-service-name: "grpc"
+    client-fingerprint: chrome
+EOF
+        echoContent yellow " ---> 二维码 VLESS(VLESS+reality+uTLS+gRPC)"
+        echoContent green "    https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=vless%3A%2F%2F${id}%40$(getPublicIP)%3A${currentRealityPort}%3Fencryption%3Dnone%26security%3Dreality%26type%3Dgrpc%26sni%3D${currentRealityServerNames}%26fp%3Dchrome%26pbk%3D${currentRealityPublicKey}%26path%3Dgrpc%26serviceName%3Dgrpc%23${email}\n"
 	fi
 
 }
@@ -3716,33 +3898,33 @@ showAccounts() {
 	readInstallProtocolType
 	readConfigHostPathUUID
 	readHysteriaConfig
+    readXrayCoreRealityConfig
     readHysteriaPortHopping
 
 	echoContent skyBlue "\n进度 $1/${totalProgress} : 账号"
 	local show
 	# VLESS TCP
-	if [[ -n "${configPath}" ]]; then
-		show=1
-		if echo "${currentInstallProtocolType}" | grep -q trojan; then
-			echoContent skyBlue "===================== Trojan TCP TLS_Vision ======================\n"
-			jq .inbounds[0].settings.clients ${configPath}02_trojan_TCP_inbounds.json | jq -c '.[]' | while read -r user; do
-				local email=
-				email=$(echo "${user}" | jq -r .email)
-				echoContent skyBlue "\n ---> 账号:${email}"
-				defaultBase64Code trojanTCPtls "${email}" "$(echo "${user}" | jq -r .password)"
-			done
+    if echo "${currentInstallProtocolType}" | grep -q trojan; then
+        echoContent skyBlue "===================== Trojan TCP TLS_Vision ======================\n"
+        jq .inbounds[0].settings.clients ${configPath}02_trojan_TCP_inbounds.json | jq -c '.[]' | while read -r user; do
+            local email=
+            email=$(echo "${user}" | jq -r .email)
+            echoContent skyBlue "\n ---> 账号:${email}"
+            defaultBase64Code trojanTCPXTLS "${email}" "$(echo "${user}" | jq -r .password)"
+        done
 
-		else
-			echoContent skyBlue "============================= VLESS TCP TLS_Vision ==============================\n"
-			jq .inbounds[0].settings.clients ${configPath}02_VLESS_TCP_inbounds.json | jq -c '.[]' | while read -r user; do
-				local email=
-				email=$(echo "${user}" | jq -r .email)
+    elif echo ${currentInstallProtocolType} | grep -q 0; then
+        show=1
+        echoContent skyBlue "============================= VLESS TCP TLS_Vision ==============================\n"
+        jq .inbounds[0].settings.clients ${configPath}02_VLESS_TCP_inbounds.json | jq -c '.[]' | while read -r user; do
+            local email=
+            email=$(echo "${user}" | jq -r .email)
 
-				echoContent skyBlue "\n ---> 账号:${email}"
-				echo
-				defaultBase64Code vlesstcp "${email}" "$(echo "${user}" | jq -r .id)"
-			done
-		fi
+            echoContent skyBlue "\n ---> 账号:${email}"
+            echo
+            defaultBase64Code vlesstcp "${email}" "$(echo "${user}" | jq -r .id)"
+        done
+    fi
 
 		# VLESS WS
 		if echo ${currentInstallProtocolType} | grep -q 1; then
@@ -3755,48 +3937,40 @@ showAccounts() {
 				echoContent skyBlue "\n ---> 账号:${email}"
 				echo
 				local path="${currentPath}ws"
-				#	if [[ ${coreInstallType} == "1" ]]; then
-				#		echoContent yellow "Xray的0-RTT path后面会有，不兼容以v2ray为核心的客户端，请手动删除后使用\n"
-				#		path="${currentPath}ws"
-				#	fi
 				defaultBase64Code vlessws "${email}" "$(echo "${user}" | jq -r .id)"
 			done
 		fi
 
-		# VMess WS
-		if echo ${currentInstallProtocolType} | grep -q 3; then
-			echoContent skyBlue "\n================================ VMess WS TLS CDN ================================\n"
-			local path="${currentPath}vws"
-			if [[ ${coreInstallType} == "1" ]]; then
-				path="${currentPath}vws"
-			fi
-			jq .inbounds[0].settings.clients ${configPath}05_VMess_WS_inbounds.json | jq -c '.[]' | while read -r user; do
-				local email=
-				email=$(echo "${user}" | jq -r .email)
+    # VLESS grpc
+    if echo ${currentInstallProtocolType} | grep -q 5; then
+        echoContent skyBlue "\n=============================== VLESS gRPC TLS CDN ===============================\n"
+        jq .inbounds[0].settings.clients ${configPath}06_VLESS_gRPC_inbounds.json | jq -c '.[]' | while read -r user; do
 
-				echoContent skyBlue "\n ---> 账号:${email}"
-				echo
-				defaultBase64Code vmessws "${email}" "$(echo "${user}" | jq -r .id)"
-			done
-		fi
+            local email=
+            email=$(echo "${user}" | jq -r .email)
 
-		# VLESS grpc
-		if echo ${currentInstallProtocolType} | grep -q 5; then
-			echoContent skyBlue "\n=============================== VLESS gRPC TLS CDN ===============================\n"
-			echoContent red "\n --->gRPC处于测试阶段，可能对你使用的客户端不兼容，如不能使用请忽略"
-			#			local serviceName
-			#			serviceName=$(jq -r .inbounds[0].streamSettings.grpcSettings.serviceName ${configPath}06_VLESS_gRPC_inbounds.json)
-			jq .inbounds[0].settings.clients ${configPath}06_VLESS_gRPC_inbounds.json | jq -c '.[]' | while read -r user; do
+            echoContent skyBlue "\n ---> 账号:${email}"
+            echo
+            defaultBase64Code vlessgrpc "${email}" "$(echo "${user}" | jq -r .id)"
+        done
+    fi
 
-				local email=
-				email=$(echo "${user}" | jq -r .email)
+    # VMess WS
+    if echo ${currentInstallProtocolType} | grep -q 3; then
+        echoContent skyBlue "\n================================ VMess WS TLS CDN ================================\n"
+        local path="${currentPath}vws"
+        if [[ ${coreInstallType} == "1" ]]; then
+            path="${currentPath}vws"
+        fi
+        jq .inbounds[0].settings.clients ${configPath}05_VMess_WS_inbounds.json | jq -c '.[]' | while read -r user; do
+            local email=
+            email=$(echo "${user}" | jq -r .email)
 
-				echoContent skyBlue "\n ---> 账号:${email}"
-				echo
-				defaultBase64Code vlessgrpc "${email}" "$(echo "${user}" | jq -r .id)"
-			done
-		fi
-	fi
+            echoContent skyBlue "\n ---> 账号:${email}"
+            echo
+            defaultBase64Code vmessws "${email}" "$(echo "${user}" | jq -r .id)"
+        done
+    fi
 
 	# trojan tcp
 	if echo ${currentInstallProtocolType} | grep -q 4; then
@@ -3850,6 +4024,33 @@ showAccounts() {
 
 	fi
 
+    # VLESS reality vision
+    if echo ${currentInstallProtocolType} | grep -q 7; then
+        show=1
+        echoContent skyBlue "============================= VLESS reality_vision  ==============================\n"
+        jq .inbounds[0].settings.clients ${configPath}07_VLESS_vision_reality_inbounds.json | jq -c '.[]' | while read -r user; do
+            local email=
+            email=$(echo "${user}" | jq -r .email)
+
+            echoContent skyBlue "\n ---> 账号:${email}"
+            echo
+            defaultBase64Code vlessReality "${email}" "$(echo "${user}" | jq -r .id)"
+        done
+    fi
+
+    # VLESS reality
+    if echo ${currentInstallProtocolType} | grep -q 8; then
+        show=1
+        echoContent skyBlue "============================== VLESS reality_gRPC  ===============================\n"
+        jq .inbounds[0].settings.clients ${configPath}08_VLESS_reality_fallback_grpc_inbounds.json | jq -c '.[]' | while read -r user; do
+            local email=
+            email=$(echo "${user}" | jq -r .email)
+
+            echoContent skyBlue "\n ---> 账号:${email}"
+            echo
+            defaultBase64Code vlessRealityGRPC "${email}" "$(echo "${user}" | jq -r .id)"
+        done
+    fi
 	if [[ -z ${show} ]]; then
 		echoContent red " ---> 未安装"
 	fi
@@ -4110,7 +4311,7 @@ unInstall() {
 		menu
 		exit 0
 	fi
-
+    echoContent yellow " ---> 脚本不会删除acme相关配置，删除请手动执行 [rm -rf /root/.acme.sh]"
 	handleNginx stop
 	if [[ -z $(pgrep -f "nginx") ]]; then
 		echoContent green " ---> 停止Nginx成功"
@@ -4135,19 +4336,18 @@ unInstall() {
 		echoContent green " ---> 删除Hysteria开机自启完成"
 	fi
 
-	if [[ -f "/root/.acme.sh/acme.sh.env" ]] && grep -q 'acme.sh.env' </root/.bashrc; then
-		sed -i 's/. "\/root\/.acme.sh\/acme.sh.env"//g' "$(grep '. "/root/.acme.sh/acme.sh.env"' -rl /root/.bashrc)"
-	fi
-	rm -rf /root/.acme.sh
-	echoContent green " ---> 删除acme.sh完成"
+    #    if [[ -f "/root/.acme.sh/acme.sh.env" ]] && grep -q 'acme.sh.env' </root/.bashrc; then
+    #        sed -i 's/. "\/root\/.acme.sh\/acme.sh.env"//g' "$(grep '. "/root/.acme.sh/acme.sh.env"' -rl /root/.bashrc)"
+    #    fi
+    #    rm -rf /root/.acme.sh
 
-	rm -rf /tmp/v2ray-agent-tls/*
-	if [[ -d "/etc/v2ray-agent/tls" ]] && [[ -n $(find /etc/v2ray-agent/tls/ -name "*.key") ]] && [[ -n $(find /etc/v2ray-agent/tls/ -name "*.crt") ]]; then
-		mv /etc/v2ray-agent/tls /tmp/v2ray-agent-tls
-		if [[ -n $(find /tmp/v2ray-agent-tls -name '*.key') ]]; then
-			echoContent yellow " ---> 备份证书成功，请注意留存。[/tmp/v2ray-agent-tls]"
-		fi
-	fi
+    #    rm -rf /tmp/v2ray-agent-tls/*
+    #    if [[ -d "/etc/v2ray-agent/tls" ]] && [[ -n $(find /etc/v2ray-agent/tls/ -name "*.key") ]] && [[ -n $(find /etc/v2ray-agent/tls/ -name "*.crt") ]]; then
+    #        mv /etc/v2ray-agent/tls /tmp/v2ray-agent-tls
+    #        if [[ -n $(find /tmp/v2ray-agent-tls -name '*.key') ]]; then
+    #            echoContent yellow " ---> 备份证书成功，请注意留存。[/tmp/v2ray-agent-tls]"
+    #        fi
+    #    fi
 
 	rm -rf /etc/v2ray-agent
 	rm -rf ${nginxConfigPath}alone.conf
@@ -4312,12 +4512,12 @@ addUser() {
 		else
 			uuid=$(${ctlPath} uuid)
 		fi
-
-		if [[ -n "${currentCustomEmail}" ]]; then
-			email=${currentCustomEmail}_${uuid}
-		else
-			email=${currentHost}_${uuid}
-		fi
+        local email=
+        if [[ -z "${currentCustomEmail}" ]]; then
+            email=${uuid}
+        else
+            email=${currentCustomEmail}
+        fi
 
         # VLESS TCP
         if echo "${currentInstallProtocolType}" | grep -q "0"; then
@@ -4365,6 +4565,22 @@ addUser() {
             clients=$(initXrayClients 5 "${uuid}" "${email}")
             clients=$(jq -r ".inbounds[0].settings.clients = ${clients}" ${configPath}06_VLESS_gRPC_inbounds.json)
             echo "${clients}" | jq . >${configPath}06_VLESS_gRPC_inbounds.json
+        fi
+
+        # vless reality vision
+        if echo "${currentInstallProtocolType}" | grep -q "7"; then
+            local clients=
+            clients=$(initXrayClients 7 "${uuid}" "${email}")
+            clients=$(jq -r ".inbounds[0].settings.clients = ${clients}" ${configPath}07_VLESS_vision_reality_inbounds.json)
+            echo "${clients}" | jq . >${configPath}07_VLESS_vision_reality_inbounds.json
+        fi
+
+        # vless reality grpc
+        if echo "${currentInstallProtocolType}" | grep -q "8"; then
+            local clients=
+            clients=$(initXrayClients 8 "${uuid}" "${email}")
+            clients=$(jq -r ".inbounds[0].settings.clients = ${clients}" ${configPath}08_VLESS_reality_fallback_grpc_inbounds.json)
+            echo "${clients}" | jq . >${configPath}08_VLESS_reality_fallback_grpc_inbounds.json
         fi
 
         # hysteria
@@ -4581,11 +4797,11 @@ removeUser() {
 updateV2RayAgent() {
 	echoContent skyBlue "\n进度  $1/${totalProgress} : 更新v2ray-agent脚本"
 	rm -rf /etc/v2ray-agent/install.sh
-	if wget --help | grep -q show-progress; then
-		wget -c -q --show-progress -P /etc/v2ray-agent/ -N --no-check-certificate "https://raw.githubusercontent.com/Wizard89/v2ray-agent/master/install.sh"
-	else
-		wget -c -q -P /etc/v2ray-agent/ -N --no-check-certificate "https://raw.githubusercontent.com/Wizard89/v2ray-agent/master/install.sh"
-	fi
+    #    if wget --help | grep -q show-progress; then
+	wget -c -q --show-progress -P /etc/v2ray-agent/ -N --no-check-certificate "https://raw.githubusercontent.com/Wizard89/v2ray-agent/master/install.sh"
+    #    else
+    #        wget -c -q -P /etc/v2ray-agent/ -N --no-check-certificate "https://raw.githubusercontent.com/Wizard89/v2ray-agent/master/install.sh"
+    #    fi
 
 	sudo chmod 700 /etc/v2ray-agent/install.sh
 	local version
@@ -4637,6 +4853,7 @@ checkLog() {
 		echoContent red " ---> 没有检测到安装目录，请执行脚本安装内容"
         exit 0
 	fi
+    local realityLogShow=
 	local logStatus=false
 	if grep -q "access" ${configPath}00_log.json; then
 		logStatus=true
@@ -4675,6 +4892,7 @@ checkLog() {
 }
 EOF
 		elif [[ "${logStatus}" == "true" ]]; then
+            realityLogShow=false
 			cat <<EOF >${configPath}00_log.json
 {
   "log": {
@@ -4683,6 +4901,12 @@ EOF
   }
 }
 EOF
+        fi
+
+        if [[ -n ${realityStatus} ]]; then
+            local vlessVisionRealityInbounds
+            vlessVisionRealityInbounds=$(jq -r ".inbounds[0].streamSettings.realitySettings.show=${realityLogShow}" ${configPath}07_VLESS_vision_reality_inbounds.json)
+            echo "${vlessVisionRealityInbounds}" | jq . >${configPath}07_VLESS_vision_reality_inbounds.json
 		fi
 		reloadCore
 		checkLog 1
@@ -4739,10 +4963,9 @@ aliasInstall() {
 
 # 检查ipv6、ipv4
 checkIPv6() {
-	# pingIPv6=$(ping6 -c 1 www.google.com | sed '2{s/[^(]*(//;s/).*//;q;}' | tail -n +2)
-	pingIPv6=$(ping6 -c 1 www.google.com | sed -n '1p' | sed 's/.*(//g;s/).*//g')
+    currentIPv6IP=$(curl -s -6 http://www.cloudflare.com/cdn-cgi/trace | grep "ip" | cut -d "=" -f 2)
 
-	if [[ -z "${pingIPv6}" ]]; then
+	if [[ -z "${currentIPv6IP}" ]]; then
 		echoContent red " ---> 不支持ipv6"
 		exit 0
 	fi
@@ -5785,6 +6008,8 @@ customXrayInstall() {
 	echoContent yellow "3.VMess+TLS+WS[CDN]"
 	echoContent yellow "4.Trojan+TLS"
 	echoContent yellow "5.VLESS+TLS+gRPC[CDN]"
+    echoContent yellow "7.VLESS+Reality+uTLS+Vision[推荐]"
+    #    echoContent yellow "8.VLESS+Reality+gRPC"
 	read -r -p "请选择[多选]，[例如:123]:" selectCustomInstallType
 	echoContent skyBlue "--------------------------------------------------------------"
 	if [[ -z ${selectCustomInstallType} ]]; then
@@ -6006,6 +6231,21 @@ unInstallHysteriaCore() {
 	rm -rf /etc/systemd/system/hysteria.service
 	echoContent green " ---> 卸载完成"
 }
+unInstallXrayCoreReality() {
+
+    if [[ -z "${realityStatus}" ]]; then
+        echoContent red "\n ---> 未安装"
+        exit 0
+    fi
+    echoContent skyBlue "\n功能 1/1 : reality卸载"
+    echoContent red "\n=============================================================="
+    echoContent yellow "# 仅删除VLESS Reality相关配置，不会删除其他内容。"
+    echoContent yellow "# 如果需要卸载其他内容，请卸载脚本功能"
+    handleXray stop
+    rm /etc/v2ray-agent/xray/conf/07_VLESS_vision_reality_inbounds.json
+    rm /etc/v2ray-agent/xray/conf/08_VLESS_reality_fallback_grpc_inbounds.json
+    echoContent green " ---> 卸载完成"
+}
 
 # 核心管理
 coreVersionManageMenu() {
@@ -6040,6 +6280,7 @@ manageAccount() {
         echoContent red " ---> 未安装"
         exit 0
 	fi
+
 	echoContent red "\n=============================================================="
 	echoContent yellow "# 每次删除、添加账号后，需要重新查看订阅生成订阅"
     echoContent yellow "# 添加单个用户时可自定义email和uuid"
@@ -6616,6 +6857,184 @@ switchAlpn() {
 	reloadCore
 }
 
+# 初始化realityKey
+initRealityKey() {
+    echoContent skyBlue "\n========================== 生成key ==========================\n"
+    if [[ -n "${currentRealityPublicKey}" ]]; then
+        read -r -p "读取到上次安装记录，是否使用上次安装时的PublicKey/PrivateKey ？[y/n]:" historyKeyStatus
+        if [[ "${historyKeyStatus}" == "y" ]]; then
+            realityPrivateKey=${currentRealityPrivateKey}
+            realityPublicKey=${currentRealityPublicKey}
+        fi
+    fi
+    if [[ -z "${realityPrivateKey}" ]]; then
+        realityX25519Key=$(/etc/v2ray-agent/xray/xray x25519)
+        realityPrivateKey=$(echo "${realityX25519Key}" | head -1 | awk '{print $3}')
+        realityPublicKey=$(echo "${realityX25519Key}" | tail -n 1 | awk '{print $3}')
+    fi
+    echoContent green "\n privateKey:${realityPrivateKey}"
+    echoContent green "\n publicKey:${realityPublicKey}"
+}
+# 初始化reality dest
+initRealityDest() {
+    if [[ -n "${domain}" ]]; then
+        realityDestDomain=${domain}:${port}
+    else
+        local realityDestDomainList=
+        realityDestDomainList="gateway.icloud.com,itunes.apple.com,download-installer.cdn.mozilla.net,addons.mozilla.org,www.microsoft.com,www.lovelive-anime.jp,www.speedtest.net,www.speedtest.org,swdist.apple.com,swcdn.apple.com,updates.cdn-apple.com,mensura.cdn-apple.com,osxapps.itunes.apple.com,aod.itunes.apple.com,cdn-dynmedia-1.microsoft.com,update.microsoft,software.download.prss.microsoft.com,s0.awsstatic.com,d1.awsstatic.com,images-na.ssl-images-amazon.com,m.media-amazon.com,player.live-video.net,dl.google.com,www.google-analytics.com"
+
+        echoContent skyBlue "\n===== 生成配置回落的域名 例如:[addons.mozilla.org:443] ======\n"
+        echoContent green "回落域名列表:"
+        read -r -p "请输入[回车]使用随机:" realityDestDomain
+        if [[ -z "${realityDestDomain}" ]]; then
+            local randomNum=
+            randomNum=$((RANDOM % 24 + 1))
+            echo randomNum:${randomNum}
+            echo ${realityDestDomainList}
+            realityDestDomain=$(echo "${realityDestDomainList}" | awk -F ',' -v randomNum="$randomNum" '{print $randomNum":443"}')
+        fi
+        if ! echo "${realityDestDomain}" | grep -q ":"; then
+            echoContent red "\n ---> 域名不合规范，请重新输入"
+            initRealityDest
+        else
+            echoContent yellow "\n ---> 回落域名: ${realityDestDomain}"
+        fi
+    fi
+}
+# 初始化客户端可用的ServersName
+initRealityClientServersName() {
+    if [[ -n "${domain}" ]]; then
+        realityServerNames=\"${domain}\"
+    elif [[ -n "${realityDestDomain}" ]]; then
+        realityServerNames=$(echo "${realityDestDomain}" | cut -d ":" -f 1)
+
+        realityServerNames=\"${realityServerNames//,/\",\"}\"
+    else
+        echoContent skyBlue "\n================ 配置客户端可用的serverNames ================\n"
+        echoContent yellow "#注意事项"
+        echoContent green "客户端可用的serverNames 列表："
+        echoContent yellow "录入示例:addons.mozilla.org\n"
+        read -r -p "请输入[回车]使用随机:" realityServerNames
+        if [[ -z "${realityServerNames}" ]]; then
+            realityServerNames=\"addons.mozilla.org\"
+        else
+            realityServerNames=\"${realityServerNames//,/\",\"}\"
+        fi
+    fi
+
+    echoContent yellow "\n ---> 客户端可用域名: ${realityServerNames}\n"
+}
+# 初始化reality端口
+initRealityPort() {
+    if [[ -n "${currentRealityPort}" ]]; then
+        read -r -p "读取到上次安装记录，是否使用上次安装时的端口 ？[y/n]:" historyRealityPortStatus
+        if [[ "${historyRealityPortStatus}" == "y" ]]; then
+            realityPort=${currentRealityPort}
+        fi
+    fi
+    # todo 读取到VLESS_TLS_Vision端口，提示是否使用使用。这里可能有歧义
+    if [[ -z "${realityPort}" ]]; then
+        if [[ -n "${port}" ]]; then
+            read -r -p "是否使用TLS+Vision端口 ？[y/n]:" realityPortTLSVisionStatus
+            if [[ "${realityPortTLSVisionStatus}" == "y" ]]; then
+                realityPort=${port}
+            fi
+        fi
+        if [[ -z "${realityPort}" ]]; then
+            echoContent yellow "请输入端口[回车随机10000-30000]"
+            read -r -p "端口:" realityPort
+            if [[ -z "${realityPort}" ]]; then
+                realityPort=$((RANDOM % 20001 + 10000))
+            fi
+        fi
+        if [[ -n "${realityPort}" && "${currentRealityPort}" == "${realityPort}" ]]; then
+            handleXray stop
+        else
+            checkPort "${realityPort}"
+            #            if [[ -n "${port}" && "${port}" == "${realityPort}" ]]; then
+            #                echoContent red "  端口不可与Vision重复--->"
+            #                echo
+            #                realityPort=
+            #            fi
+        fi
+    fi
+    if [[ -z "${realityPort}" ]]; then
+        initRealityPort
+    else
+        allowPort "${realityPort}"
+        echoContent yellow "\n ---> 端口: ${realityPort}"
+    fi
+
+}
+# 初始化 reality 配置
+initXrayRealityConfig() {
+    echoContent skyBlue "\n进度  $1/${totalProgress} : 初始化 Xray-core reality配置"
+    initRealityPort
+    initRealityKey
+    initRealityDest
+    initRealityClientServersName
+}
+# 修改reality域名端口等信息
+updateXrayRealityConfig() {
+
+    local realityVisionResult
+    realityVisionResult=$(jq -r ".inbounds[0].streamSettings.realitySettings.port = ${realityPort}" ${configPath}07_VLESS_vision_reality_inbounds.json)
+    realityVisionResult=$(echo "${realityVisionResult}" | jq -r ".inbounds[0].streamSettings.realitySettings.dest = \"${realityDestDomain}\"")
+    realityVisionResult=$(echo "${realityVisionResult}" | jq -r ".inbounds[0].streamSettings.realitySettings.serverNames = [${realityServerNames}]")
+    realityVisionResult=$(echo "${realityVisionResult}" | jq -r ".inbounds[0].streamSettings.realitySettings.privateKey = \"${realityPrivateKey}\"")
+    realityVisionResult=$(echo "${realityVisionResult}" | jq -r ".inbounds[0].streamSettings.realitySettings.publicKey = \"${realityPublicKey}\"")
+    echo "${realityVisionResult}" | jq . >${configPath}07_VLESS_vision_reality_inbounds.json
+    reloadCore
+    echoContent green " ---> 修改完成"
+}
+# xray-core Reality 安装
+xrayCoreRealityInstall() {
+    totalProgress=13
+    installTools 2
+    # 下载核心
+    #    prereleaseStatus=true
+    #    updateXray
+    installXray 3 true
+    # 生成 privateKey、配置回落地址、配置serverNames
+    installXrayService 6
+    # initXrayRealityConfig 5
+    # 初始化配置
+    initXrayConfig custom 7
+    handleXray stop
+    cleanUp v2rayClean
+    sleep 2
+    # 启动
+    handleXray start
+    # 生成账号
+    showAccounts 8
+}
+# reality管理
+manageReality() {
+
+    echoContent skyBlue "\n进度  1/1 : reality管理"
+    echoContent red "\n=============================================================="
+
+    if [[ -n "${realityStatus}" ]]; then
+        echoContent yellow "1.重新安装"
+        echoContent yellow "2.卸载"
+        echoContent yellow "3.更换配置"
+    else
+        echoContent yellow "1.安装"
+    fi
+    echoContent red "=============================================================="
+    read -r -p "请选择:" installRealityStatus
+
+    if [[ "${installRealityStatus}" == "1" ]]; then
+        selectCustomInstallType="7"
+        xrayCoreRealityInstall
+    elif [[ "${installRealityStatus}" == "2" ]]; then
+        unInstallXrayCoreReality
+    elif [[ "${installRealityStatus}" == "3" ]]; then
+        initXrayRealityConfig 1
+        updateXrayRealityConfig
+    fi
+}
+
 # hysteria管理
 manageHysteria() {
 
@@ -6699,25 +7118,26 @@ menu() {
 	fi
 
 	echoContent yellow "4.Hysteria管理"
+    echoContent yellow "5.REALITY管理"
 	echoContent skyBlue "-------------------------工具管理-----------------------------"
-	echoContent yellow "5.账号管理"
-	echoContent yellow "6.更换伪装站"
-	echoContent yellow "7.更新证书"
-	echoContent yellow "8.更换CDN节点"
-	echoContent yellow "9.IPv6分流"
-	echoContent yellow "10.WARP分流"
-	echoContent yellow "11.流媒体工具"
-	echoContent yellow "12.添加新端口"
-	echoContent yellow "13.BT下载管理"
-	echoContent yellow "14.切换alpn"
-	echoContent yellow "15.域名黑名单"
+	echoContent yellow "6.账号管理"
+	echoContent yellow "7.更换伪装站"
+	echoContent yellow "8.更新证书"
+	echoContent yellow "9.更换CDN节点"
+	echoContent yellow "10.IPv6分流"
+	echoContent yellow "11.WARP分流"
+	echoContent yellow "12.流媒体工具"
+	echoContent yellow "13.添加新端口"
+	echoContent yellow "14.BT下载管理"
+	echoContent yellow "15.切换alpn"
+	echoContent yellow "16.域名黑名单"
 	echoContent skyBlue "-------------------------版本管理-----------------------------"
-	echoContent yellow "16.core管理"
-	echoContent yellow "17.更新脚本"
-	echoContent yellow "18.安装BBR、DD脚本"
+	echoContent yellow "17.core管理"
+	echoContent yellow "18.更新脚本"
+	echoContent yellow "19.安装BBR、DD脚本"
 	echoContent skyBlue "-------------------------脚本管理-----------------------------"
-	echoContent yellow "19.查看日志"
-	echoContent yellow "20.卸载脚本"
+	echoContent yellow "20.查看日志"
+	echoContent yellow "21.卸载脚本"
 	echoContent red "=============================================================="
 	mkdirTools
 	aliasInstall
