@@ -987,6 +987,33 @@ installWarp() {
     fi
 }
 
+# 通过dns检查域名的IP
+checkDNSIP() {
+    local domain=$1
+    local dnsIP=
+    dnsIP=$(dig @1.1.1.1 +time=1 +short "${domain}")
+    if echo "${dnsIP}" | grep -q "timed out" || [[ -z "${dnsIP}" ]]; then
+        echo
+        echoContent red " ---> 无法通过DNS获取域名IPv4地址"
+        echoContent green " ---> 尝试检查域名IPv6地址"
+        dnsIP=$(dig @2606:4700:4700::1111 +time=1 aaaa +short "${domain}")
+        if [[ -z "${dnsIP}" ]]; then
+            echoContent red " ---> 无法通过DNS获取域名IPv6地址，退出安装"
+            exit 0
+        fi
+    fi
+    local publicIP=
+
+    publicIP=$(getPublicIP)
+
+    if [[ "${publicIP}" != "${dnsIP}" ]]; then
+        echoContent red " ---> 域名解析IP与当前服务器IP不一致\n"
+        echoContent yellow " ---> 请检查域名解析是否生效以及正确"
+        echoContent green " ---> 当前VPS IP：${publicIP}"
+        echoContent green " ---> DNS解析 IP：${dnsIP}"
+        exit 0
+    fi
+}
 # 检查端口实际开放状态
 checkPortOpen() {
 
@@ -1431,6 +1458,7 @@ customPortFunction() {
                 allowPort "${port}"
                 echoContent yellow "\n ---> 端口: ${port}"
                 if [[ -z "${btDomain}" ]]; then
+                    checkDNSIP "${domain}"
                     checkPortOpen "${port}" "${domain}"
                 fi
             else
@@ -5457,9 +5485,10 @@ readConfigWarpReg() {
     reservedWarpReg=$(grep <"/etc/v2ray-agent/warp/config" reserved | awk -F "[:]" '{print $2}')
 
 }
-# warp分流-第三方
+# warp分流-第三方IPv4
 warpRoutingReg() {
-    echoContent skyBlue "\n进度  $1/${totalProgress} : WARP分流[第三方-IPv6]"
+    local type=$2
+    echoContent skyBlue "\n进度  $1/${totalProgress} : WARP分流[第三方]"
     echoContent red "=============================================================="
     if [[ ! -f "/etc/v2ray-agent/warp/warp-reg" ]]; then
         echo
@@ -5486,8 +5515,19 @@ warpRoutingReg() {
     echoContent yellow "4.卸载WARP分流"
     echoContent red "=============================================================="
     read -r -p "请选择:" warpStatus
+
+    readConfigWarpReg
+    local address=
+    if [[ ${type} == "IPv4" ]]; then
+        address="172.16.0.2/32"
+    elif [[ ${type} == "IPv6" ]]; then
+        address="${addressWarpReg}/128"
+    else
+        echoContent red " ---> IP获取失败，退出安装"
+    fi
+
     if [[ "${warpStatus}" == "1" ]]; then
-        jq -r -c '.routing.rules[]|select (.outboundTag=="wireguard-out")|.domain' ${configPath}09_routing.json | jq -r
+        jq -r -c '.routing.rules[]|select (.outboundTag=="wireguard-out-'"${type}"'")|.domain' ${configPath}09_routing.json | jq -r
         exit 0
     elif [[ "${warpStatus}" == "2" ]]; then
         echoContent yellow "# 注意事项"
@@ -5495,14 +5535,12 @@ warpRoutingReg() {
 
         read -r -p "请按照上面示例录入域名:" domainList
 
-        addInstallRouting wireguard-out outboundTag "${domainList}"
+        addInstallRouting wireguard-out-"${type}" outboundTag "${domainList}"
 
-        unInstallOutbounds wireguard-out
-
-        readConfigWarpReg
+        unInstallOutbounds wireguard-out-"${type}"
 
         local outbounds
-        outbounds=$(jq -r '.outbounds += [{"protocol":"wireguard","settings":{"secretKey":"'"${secretKeyWarpReg}"'","address":["'"${addressWarpReg}"'/128"],"peers":[{"publicKey":"'"${publicKeyWarpReg}"'","allowedIPs":["0.0.0.0/0","::/0"],"endpoint":"162.159.192.1:2408"}],"reserved":'"${reservedWarpReg}"',"mtu":1280},"tag":"wireguard-out"}]' ${configPath}10_ipv4_outbounds.json)
+        outbounds=$(jq -r '.outbounds += [{"protocol":"wireguard","settings":{"secretKey":"'"${secretKeyWarpReg}"'","address":["'"${address}"'"],"peers":[{"publicKey":"'"${publicKeyWarpReg}"'","allowedIPs":["0.0.0.0/0","::/0"],"endpoint":"162.159.192.1:2408"}],"reserved":'"${reservedWarpReg}"',"mtu":1280},"tag":"wireguard-out-'"${type}"'"}]' ${configPath}10_ipv4_outbounds.json)
 
         echo "${outbounds}" | jq . >${configPath}10_ipv4_outbounds.json
 
@@ -5527,14 +5565,14 @@ warpRoutingReg() {
             "settings": {
                 "secretKey": "${secretKeyWarpReg}",
                 "address": [
-                    "${addressWarpReg}/128"
+                    ${address}
                 ],
                 "peers": [
                     {
                         "publicKey": "${publicKeyWarpReg}",
                         "allowedIPs": [
                             "0.0.0.0/0",
-                            "::/0"
+                             "::/0"
                         ],
                         "endpoint": "162.159.192.1:2408"
                     }
@@ -5542,7 +5580,7 @@ warpRoutingReg() {
                 "reserved": ${reservedWarpReg},
                 "mtu": 1280
             },
-            "tag": "wireguard-out"
+            "tag": "wireguard-out-${type}"
         }
     ]
 }
@@ -5556,10 +5594,19 @@ EOF
 
     elif [[ "${warpStatus}" == "4" ]]; then
 
-        unInstallRouting wireguard-out outboundTag
+        unInstallRouting wireguard-out-"${type}" outboundTag
 
-        unInstallOutbounds wireguard-out
-        rm -rf /etc/v2ray-agent/warp/config >/dev/null 2>&1
+        unInstallOutbounds wireguard-out-"${type}"
+        if [[ "${type}" == "IPv4" ]]; then
+            if ! grep -q "wireguard-out-IPv6" <${configPath}10_ipv4_outbounds.json; then
+                rm -rf /etc/v2ray-agent/warp/config >/dev/null 2>&1
+            fi
+        elif [[ "${type}" == "IPv6" ]]; then
+            if ! grep -q "wireguard-out-IPv4" <${configPath}10_ipv4_outbounds.json; then
+                rm -rf /etc/v2ray-agent/warp/config >/dev/null 2>&1
+            fi
+        fi
+
         if ! grep -q "IPv4-out" <"${configPath}10_ipv4_outbounds.json"; then
 
             cat <<EOF >${configPath}10_ipv4_outbounds.json
@@ -5600,39 +5647,41 @@ EOF
 routingToolsMenu() {
     echoContent skyBlue "\n功能 1/${totalProgress} : 分流工具"
     echoContent red "\n=============================================================="
-    echoContent yellow "1.WARP分流【官方】"
-    echoContent yellow "2.IPv6分流"
-    echoContent yellow "3.任意门分流"
-    echoContent yellow "4.DNS分流"
-    echoContent yellow "5.VMess+WS+TLS分流"
-    echoContent yellow "6.SNI反向代理分流"
-    echoContent yellow "7.WARP分流【第三方】"
+    echoContent yellow "1.WARP分流【第三方 IPv4】"
+    echoContent yellow "2.WARP分流【第三方 IPv6】"
+    echoContent yellow "3.IPv6分流"
+    echoContent yellow "4.任意门分流"
+    echoContent yellow "5.DNS分流"
+    echoContent yellow "6.VMess+WS+TLS分流"
+    echoContent yellow "7.SNI反向代理分流"
+
     read -r -p "请选择:" selectType
 
     case ${selectType} in
     1)
-        warpRouting 1
+        warpRoutingReg 1 IPv4
         ;;
     2)
-        ipv6Routing 1
+        warpRoutingReg 1 IPv6
         ;;
     3)
-        dokodemoDoorRouting 1
+        ipv6Routing 1
         ;;
     4)
-        dnsRouting 1
+        dokodemoDoorRouting 1
         ;;
     5)
-        vmessWSRouting 1
+        dnsRouting 1
         ;;
     6)
-        sniRouting 1
+        vmessWSRouting 1
         ;;
     7)
-        warpRoutingReg 1
+        sniRouting 1
         ;;
     esac
 }
+
 # 流媒体工具箱
 streamingToolbox() {
 	echoContent skyBlue "\n功能 1/${totalProgress} : 流媒体工具箱"
@@ -6645,7 +6694,7 @@ socks-port: 7891
 allow-lan: true
 mode: Rule
 log-level: debug
-external-controller: 127.0.0.1:9090
+external-controller: 127.0.0.1:7890
 dns:
   enable: true
   ipv6: false
@@ -7359,7 +7408,7 @@ menu() {
 	echoContent red "\n=============================================================="
 	echoContent green "原作者：mack-a"
 	echoContent green "作者：Wizard89"
-	echoContent green "当前版本：v2.7.8"
+	echoContent green "当前版本：v2.7.9"
 	echoContent green "Github：https://github.com/Wizard89/v2ray-agent"
 	echoContent green "描述：八合一共存脚本\c"
 	showInstallStatus
