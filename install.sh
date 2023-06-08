@@ -478,10 +478,14 @@ allowPort() {
 }
 # 获取公网IP
 getPublicIP() {
+    local type=4
+    if [[ -n "$1" ]]; then
+        type=$1
+    fi
     local currentIP=
-    currentIP=$(curl -s -4 http://www.cloudflare.com/cdn-cgi/trace | grep "ip" | awk -F "[=]" '{print $2}')
+    currentIP=$(curl -s "-${type}" http://www.cloudflare.com/cdn-cgi/trace | grep "ip" | awk -F "[=]" '{print $2}')
     if [[ -z "${currentIP}" ]]; then
-        currentIP=$(curl -s -6 http://www.cloudflare.com/cdn-cgi/trace | grep "ip" | awk -F "[=]" '{print $2}')
+        currentIP=$(curl -s "-${type}" http://www.cloudflare.com/cdn-cgi/trace | grep "ip" | awk -F "[=]" '{print $2}')
     fi
     echo "${currentIP}"
 }
@@ -991,12 +995,14 @@ installWarp() {
 checkDNSIP() {
     local domain=$1
     local dnsIP=
+    local type=4
     dnsIP=$(dig @1.1.1.1 +time=1 +short "${domain}")
     if echo "${dnsIP}" | grep -q "timed out" || [[ -z "${dnsIP}" ]]; then
         echo
         echoContent red " ---> 无法通过DNS获取域名IPv4地址"
         echoContent green " ---> 尝试检查域名IPv6地址"
         dnsIP=$(dig @2606:4700:4700::1111 +time=1 aaaa +short "${domain}")
+        type=6
         if [[ -z "${dnsIP}" ]]; then
             echoContent red " ---> 无法通过DNS获取域名IPv6地址，退出安装"
             exit 0
@@ -1004,7 +1010,7 @@ checkDNSIP() {
     fi
     local publicIP=
 
-    publicIP=$(getPublicIP)
+    publicIP=$(getPublicIP "${type}")
 
     if [[ "${publicIP}" != "${dnsIP}" ]]; then
         echoContent red " ---> 域名解析IP与当前服务器IP不一致\n"
@@ -5264,7 +5270,13 @@ EOF
     local routingRule=
     routingRule=$(jq -r '.routing.rules[]|select(.outboundTag=="'"${tag}"'")' ${configPath}09_routing.json)
     if [[ -z "${routingRule}" ]]; then
-        routingRule="{\"type\": \"field\",\"domain\": [],\"outboundTag\": \"${tag}\"}"
+        if [[ "${tag}" == "dokodemoDoor-80" ]]; then
+            routingRule="{\"type\": \"field\",\"port\": 80,\"domain\": [],\"outboundTag\": \"${tag}\"}"
+        elif [[ "${tag}" == "dokodemoDoor-443" ]]; then
+            routingRule="{\"type\": \"field\",\"port\": 443,\"domain\": [],\"outboundTag\": \"${tag}\"}"
+        else
+            routingRule="{\"type\": \"field\",\"domain\": [],\"outboundTag\": \"${tag}\"}"
+        fi
     fi
 
     while read -r line; do
@@ -5951,68 +5963,56 @@ setDokodemoDoorRoutingInbounds() {
   ]
 }
 EOF
+        local domains=
+        domains=[]
+        while read -r line; do
+            local geositeStatus
+            geositeStatus=$(curl -s "https://api.github.com/repos/v2fly/domain-list-community/contents/data/${line}" | jq .message)
 
-        cat <<EOF >${configPath}10_ipv4_outbounds.json
-{
-    "outbounds":[
-        {
-            "protocol":"freedom",
-            "settings":{
-                "domainStrategy":"UseIPv4"
-            },
-            "tag":"IPv4-out"
-        },
-        {
-            "protocol":"freedom",
-            "settings":{
-                "domainStrategy":"UseIPv6"
-            },
-            "tag":"IPv6-out"
-        },
-        {
-            "protocol":"blackhole",
-            "tag":"blackhole-out"
-        }
-    ]
-}
-EOF
+            if [[ "${geositeStatus}" == "null" ]]; then
+                domains=$(echo "${domains}" | jq -r '. += ["geosite:'"${line}"'"]')
+            else
+                domains=$(echo "${domains}" | jq -r '. += ["domain:'"${line}"'"]')
+            fi
+        done < <(echo "${domainList}" | tr ',' '\n')
+
+
         if [[ -f "${configPath}09_routing.json" ]]; then
             unInstallRouting dokodemoDoor-80 inboundTag
             unInstallRouting dokodemoDoor-443 inboundTag
 
             local routing
-            routing=$(jq -r ".routing.rules += [{\"source\":[\"${setIPs//,/\",\"}\"],\"type\":\"field\",\"inboundTag\":[\"dokodemoDoor-80\",\"dokodemoDoor-443\"],\"outboundTag\":\"direct\"},{\"domains\":[\"geosite:${domainList//,/\",\"geosite:}\"],\"type\":\"field\",\"inboundTag\":[\"dokodemoDoor-80\",\"dokodemoDoor-443\"],\"outboundTag\":\"blackhole-out\"}]" ${configPath}09_routing.json)
+            routing=$(jq -r ".routing.rules += [{\"source\":[\"${setIPs//,/\",\"}\"],\"domains\":${domains},\"type\":\"field\",\"inboundTag\":[\"dokodemoDoor-80\",\"dokodemoDoor-443\"],\"outboundTag\":\"direct\"},{\"type\":\"field\",\"inboundTag\":[\"dokodemoDoor-80\",\"dokodemoDoor-443\"],\"outboundTag\":\"blackhole-out\"}]" ${configPath}09_routing.json)
             echo "${routing}" | jq . >${configPath}09_routing.json
         else
+
             cat <<EOF >${configPath}09_routing.json
-            {
-              "routing": {
-                "rules": [
-                  {
-                    "source": [
-                    	"${setIPs//,/\",\"}"
-                    ],
-                    "type": "field",
-                    "inboundTag": [
-                      "dokodemoDoor-80",
-                      "dokodemoDoor-443"
-                    ],
-                    "outboundTag": "direct"
-                  },
-                  {
-                    "domains": [
-                    	"geosite:${domainList//,/\",\"geosite:}"
-                    ],
-                    "type": "field",
-                    "inboundTag": [
-                      "dokodemoDoor-80",
-                      "dokodemoDoor-443"
-                    ],
-                    "outboundTag": "blackhole-out"
-                  }
-                ]
-              }
-            }
+{
+  "routing": {
+    "rules": [
+      {
+        "source": [
+            "${setIPs//,/\",\"}"
+        ],
+        "domains":${domains},
+        "type": "field",
+        "inboundTag": [
+          "dokodemoDoor-80",
+          "dokodemoDoor-443"
+        ],
+        "outboundTag": "direct"
+      },
+      {
+        "type": "field",
+        "inboundTag": [
+          "dokodemoDoor-80",
+          "dokodemoDoor-443"
+        ],
+        "outboundTag": "blackhole-out"
+      }
+    ]
+  }
+}
 EOF
         fi
 
@@ -7287,7 +7287,7 @@ initXrayRealityConfig() {
 updateXrayRealityConfig() {
 
     local realityVisionResult
-    realityVisionResult=$(jq -r ".inbounds[0].streamSettings.realitySettings.port = ${realityPort}" ${configPath}07_VLESS_vision_reality_inbounds.json)
+    realityVisionResult=$(jq -r ".inbounds[0].port = ${realityPort}" ${configPath}07_VLESS_vision_reality_inbounds.json)
     realityVisionResult=$(echo "${realityVisionResult}" | jq -r ".inbounds[0].streamSettings.realitySettings.dest = \"${realityDestDomain}\"")
     realityVisionResult=$(echo "${realityVisionResult}" | jq -r ".inbounds[0].streamSettings.realitySettings.serverNames = [${realityServerNames}]")
     realityVisionResult=$(echo "${realityVisionResult}" | jq -r ".inbounds[0].streamSettings.realitySettings.privateKey = \"${realityPrivateKey}\"")
@@ -7408,7 +7408,7 @@ menu() {
 	echoContent red "\n=============================================================="
 	echoContent green "原作者：mack-a"
 	echoContent green "作者：Wizard89"
-	echoContent green "当前版本：v2.7.9"
+	echoContent green "当前版本：v2.7.10"
 	echoContent green "Github：https://github.com/Wizard89/v2ray-agent"
 	echoContent green "描述：八合一共存脚本\c"
 	showInstallStatus
