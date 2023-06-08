@@ -1130,6 +1130,15 @@ initTLSNginxConfig() {
     #    handleNginx start
 }
 
+# 删除nginx默认的配置
+removeNginxDefaultConf() {
+    if [[ -f ${nginxConfigPath}default.conf ]]; then
+        if [[ "$(grep -c "server_name" <${nginxConfigPath}default.conf)" == "1" ]] && [[ "$(grep -c "server_name  localhost;" <${nginxConfigPath}default.conf)" == "1" ]]; then
+            echoContent green " ---> 删除Nginx默认配置"
+            rm -rf ${nginxConfigPath}default.conf
+        fi
+    fi
+}
 # 修改nginx重定向配置
 updateRevisionNginxConf() {
 	local redirectDomain=
@@ -1465,6 +1474,7 @@ customPortFunction() {
                 echoContent yellow "\n ---> 端口: ${port}"
                 if [[ -z "${btDomain}" ]]; then
                     checkDNSIP "${domain}"
+                    removeNginxDefaultConf
                     checkPortOpen "${port}" "${domain}"
                 fi
             else
@@ -5458,9 +5468,7 @@ EOF
             exit 0
         fi
 
-    elif
-        [[ "${warpStatus}" == "4" ]]
-    then
+    elif [[ "${warpStatus}" == "4" ]]; then
 
 		${removeType} cloudflare-warp >/dev/null 2>&1
 
@@ -5577,7 +5585,7 @@ warpRoutingReg() {
             "settings": {
                 "secretKey": "${secretKeyWarpReg}",
                 "address": [
-                    ${address}
+                    "${address}"
                 ],
                 "peers": [
                     {
@@ -5975,7 +5983,6 @@ EOF
                 domains=$(echo "${domains}" | jq -r '. += ["domain:'"${line}"'"]')
             fi
         done < <(echo "${domainList}" | tr ',' '\n')
-
 
         if [[ -f "${configPath}09_routing.json" ]]; then
             unInstallRouting dokodemoDoor-80 inboundTag
@@ -7408,7 +7415,7 @@ menu() {
 	echoContent red "\n=============================================================="
 	echoContent green "原作者：mack-a"
 	echoContent green "作者：Wizard89"
-	echoContent green "当前版本：v2.7.10"
+	echoContent green "当前版本：v2.7.11"
 	echoContent green "Github：https://github.com/Wizard89/v2ray-agent"
 	echoContent green "描述：八合一共存脚本\c"
 	showInstallStatus
