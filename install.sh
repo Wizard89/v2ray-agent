@@ -7142,7 +7142,6 @@ proxy-groups:
     proxies:
       - 节点选择
       - 自动选择
-
   - name: Disney
     type: select
     use:
@@ -7248,18 +7247,6 @@ rule-providers:
     url: https://ghproxy.com/https://raw.githubusercontent.com/Loyalsoldier/clash-rules/release/telegramcidr.txt
     path: ./ruleset/telegramcidr.yaml
     interval: 86400
-  cncidr:
-    type: http
-    behavior: ipcidr
-    url: https://ghproxy.com/https://raw.githubusercontent.com/Loyalsoldier/clash-rules/release/cncidr.txt
-    path: ./ruleset/cncidr.yaml
-    interval: 86400
-  lancidr:
-    type: http
-    behavior: ipcidr
-    url: https://ghproxy.com/https://raw.githubusercontent.com/Loyalsoldier/clash-rules/release/lancidr.txt
-    path: ./ruleset/lancidr.yaml
-    interval: 86400
   applications:
     type: http
     behavior: classical
@@ -7320,43 +7307,36 @@ rule-providers:
     url: https://ghproxy.com/https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Clash/Spotify/Spotify.yaml
     path: ./ruleset/spotify.yaml
     interval: 86400
-  ChinaMax:
-    type: http
-    behavior: classical
-    interval: 86400
-    url: https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Clash/ChinaMax/ChinaMax.yaml
-    path: ./Rules/ChinaMax.yaml
   ChinaMaxDomain:
     type: http
     behavior: domain
     interval: 86400
-    url: https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Clash/ChinaMax/ChinaMaxDomain.yaml
+    url: https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Clash/ChinaMax/ChinaMax_Domain.yaml
     path: ./Rules/ChinaMaxDomain.yaml
   ChinaMaxIPNoIPv6:
     type: http
     behavior: ipcidr
     interval: 86400
-    url: https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Clash/ChinaMax/ChinaMaxIPNoIPv6.yaml
+    url: https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Clash/ChinaMax/ChinaMax_IP_No_IPv6.yaml
     path: ./Rules/ChinaMaxIPNoIPv6.yaml
 rules:
-  - GEOIP,LAN,本地直连
-  - GEOIP,CN,本地直连
-  - RULE-SET,applications,本地直连
-  - RULE-SET,direct,本地直连
-  - RULE-SET,lancidr,本地直连
-  - RULE-SET,cncidr,本地直连
+  - RULE-SET,Google,Google,no-resolve
+  - RULE-SET,YouTube,YouTube,no-resolve
   - RULE-SET,GitHub,GitHub
-  - RULE-SET,telegramcidr,Telegram
-  - RULE-SET,YouTube,YouTube
-  - RULE-SET,Spotify,Spotify
+  - RULE-SET,telegramcidr,Telegram,no-resolve
+  - RULE-SET,Spotify,Spotify,no-resolve
   - RULE-SET,Netflix,Netflix
   - RULE-SET,HBO,HBO
   - RULE-SET,Bing,Bing
   - RULE-SET,OpenAI,OpenAI
   - RULE-SET,Disney,Disney
-  - RULE-SET,Google,Google
   - RULE-SET,proxy,全球代理
   - RULE-SET,gfw,全球代理
+  - RULE-SET,applications,本地直连
+  - RULE-SET,ChinaMaxDomain,本地直连
+  - GEOIP,LAN,本地直连,no-resolve
+  - GEOIP,CN,本地直连,no-resolve
+  - GEOIP,ChinaMaxIPNoIPv6,本地直连,no-resolve
   - MATCH,漏网之鱼
 EOF
 
@@ -7803,7 +7783,7 @@ menu() {
 	echoContent red "\n=============================================================="
 	echoContent green "原作者：mack-a"
 	echoContent green "作者：Wizard89"
-	echoContent green "当前版本：v2.7.15"
+	echoContent green "当前版本：v2.7.16"
 	echoContent green "Github：https://github.com/Wizard89/v2ray-agent"
 	echoContent green "描述：八合一共存脚本\c"
 	showInstallStatus
@@ -7877,15 +7857,8 @@ menu() {
     10)
 		updateV2RayCDN 1
 		;;
-        #    10)
-        #        ipv6Routing 1
-        #        ;;
-        #    11)
-        #        warpRouting 1
-        #        ;;
 	11)
         routingToolsMenu 1
-        #        streamingToolbox 1
         ;;
 	12)
 		addCorePort 1
