@@ -4046,10 +4046,12 @@ EOF
 		hysteriaEmail=$(echo "${email}" | awk -F "[-]" '{print $1}')_hysteria
 		echoContent yellow " ---> Hysteria(TLS)"
         local clashMetaPortTmp="port: ${hysteriaPort}"
+        local v2rayNPortHopping=
         local mport=
         if [[ -n "${portHoppingStart}" ]]; then
             mport="mport=${portHoppingStart}-${portHoppingEnd}&"
             clashMetaPortTmp="ports: ${portHoppingStart}-${portHoppingEnd}"
+            v2rayNPortHopping=",${portHoppingStart}-${portHoppingEnd}"
         fi
         echoContent green "    hysteria://${currentHost}:${hysteriaPort}?${mport}protocol=${hysteriaProtocol}&auth=${id}&peer=${currentHost}&insecure=0&alpn=h3&upmbps=${hysteriaClientUploadSpeed}&downmbps=${hysteriaClientDownloadSpeed}#${hysteriaEmail}\n"
 		cat <<EOF >>"/etc/v2ray-agent/subscribe_local/default/${user}"
@@ -4058,7 +4060,7 @@ EOF
         echoContent yellow " ---> v2rayN(hysteria+TLS)"
         cat <<EOF >"/etc/v2ray-agent/hysteria/conf/client.json"
 {
-  "server": "${currentHost}:${hysteriaPort}",
+  "server": "${currentHost}:${hysteriaPort}${v2rayNPortHopping}",
   "protocol": "${hysteriaProtocol}",
   "up_mbps": ${hysteriaClientUploadSpeed},
   "down_mbps": ${hysteriaClientDownloadSpeed},
@@ -7812,7 +7814,7 @@ menu() {
 	echoContent red "\n=============================================================="
 	echoContent green "原作者：mack-a"
 	echoContent green "作者：Wizard89"
-	echoContent green "当前版本：v2.7.19"
+	echoContent green "当前版本：v2.7.20"
 	echoContent green "Github：https://github.com/Wizard89/v2ray-agent"
 	echoContent green "描述：八合一共存脚本\c"
 	showInstallStatus
