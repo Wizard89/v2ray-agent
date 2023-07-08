@@ -1923,6 +1923,7 @@ installTuic() {
         read -r -p "是否更新、升级？[y/n]:" reInstallTuicStatus
         if [[ "${reInstallTuicStatus}" == "y" ]]; then
             rm -f /etc/v2ray-agent/tuic/tuic
+            tuicConfigPath=
             installTuic "$1"
         fi
     fi
@@ -3993,6 +3994,20 @@ EOF
 		cat <<EOF >>"/etc/v2ray-agent/subscribe_local/default/${user}"
 vless://${id}@${add}:${currentDefaultPort}?encryption=none&security=tls&type=grpc&host=${currentHost}&path=${currentPath}grpc&serviceName=${currentPath}grpc&fp=chrome&alpn=h2&sni=${currentHost}#${email}
 EOF
+        cat <<EOF >>"/etc/v2ray-agent/subscribe_local/clashMeta/${user}"
+  - name: "${email}"
+    type: vless
+    server: ${add}
+    port: ${currentDefaultPort}
+    uuid: ${id}
+    udp: true
+    tls: true
+    network: grpc
+    client-fingerprint: chrome
+    servername: ${currentHost}
+    grpc-opts:
+      grpc-service-name: ${currentPath}grpc
+EOF
 		echoContent yellow " ---> 二维码 VLESS(VLESS+gRPC+TLS)"
         echoContent green "    https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=vless%3A%2F%2F${id}%40${add}%3A${currentDefaultPort}%3Fencryption%3Dnone%26security%3Dtls%26type%3Dgrpc%26host%3D${currentHost}%26serviceName%3D${currentPath}grpc%26fp%3Dchrome%26path%3D${currentPath}grpc%26sni%3D${currentHost}%26alpn%3Dh2%23${email}"
 
@@ -4410,7 +4425,7 @@ showAccounts() {
         echoContent skyBlue "\n================================  Tuic TLS  ================================\n"
         echoContent yellow "\n --->Tuic相对于Hysteria会更加温 使用体验可能会更流畅。"
 
-        jq -r .users[] ${tuicConfigPath}config.json | while read -r id; do
+        jq -r .users[] "${tuicConfigPath}config.json" | while read -r id; do
             local tuicEmail=
             tuicEmail=$(jq -r '.inbounds[0].settings.clients[]|select(.id=="'"${id}"'")|.email' ${configPath}${frontingType}.json | awk -F "[-]" '{print $1}')
 
@@ -4963,8 +4978,8 @@ addUser() {
         if echo ${currentInstallProtocolType} | grep -q 9; then
             local tuicResult
 
-            tuicResult=$(jq -r ".users.\"${uuid}\" += \"${uuid}\"" ${tuicConfigPath}config.json)
-            echo "${tuicResult}" | jq . >${tuicConfigPath}config.json
+            tuicResult=$(jq -r ".users.\"${uuid}\" += \"${uuid}\"" "${tuicConfigPath}config.json")
+            echo "${tuicResult}" | jq . >"${tuicConfigPath}config.json"
         fi
     done
 
@@ -5168,8 +5183,8 @@ removeUser() {
 
         if echo ${currentInstallProtocolType} | grep -q 9; then
             local tuicResult
-            tuicResult=$(jq -r "del(.users.\"${uuid}\")" ${tuicConfigPath}config.json)
-            echo "${tuicResult}" | jq . >${tuicConfigPath}config.json
+            tuicResult=$(jq -r "del(.users.\"${uuid}\")" "${tuicConfigPath}config.json")
+            echo "${tuicResult}" | jq . >"${tuicConfigPath}config.json"
         fi
 		reloadCore
 	fi
@@ -7029,20 +7044,20 @@ dns:
   enhanced-mode: fake-ip
   fake-ip-range: 28.0.0.1/8
   fake-ip-filter:
-  - '*'
-  - '+.lan'
+    - '*'
+    - '+.lan'
   default-nameserver:
-  - 223.5.5.5
+    - 223.5.5.5
   nameserver:
-  - 'tls://8.8.4.4#DNS_Proxy'
-  - 'tls://1.0.0.1#DNS_Proxy'
+    - 'tls://8.8.4.4#DNS_Proxy'
+    - 'tls://1.0.0.1#DNS_Proxy'
   proxy-server-nameserver:
-  - https://dns.alidns.com/dns-query
+    - https://dns.alidns.com/dns-query#h3=true
   nameserver-policy:
     "geosite:cn,private":
-    - 223.5.5.5
-    - 114.114.114.114
-    - https://dns.alidns.com/dns-query#h3=true
+      - 223.5.5.5
+      - 114.114.114.114
+      - https://dns.alidns.com/dns-query#h3=true
 
 proxy-providers:
   provider1:
@@ -7814,7 +7829,7 @@ menu() {
 	echoContent red "\n=============================================================="
 	echoContent green "原作者：mack-a"
 	echoContent green "作者：Wizard89"
-	echoContent green "当前版本：v2.7.21"
+	echoContent green "当前版本：v2.7.22"
 	echoContent green "Github：https://github.com/Wizard89/v2ray-agent"
 	echoContent green "描述：八合一共存脚本\c"
 	showInstallStatus
