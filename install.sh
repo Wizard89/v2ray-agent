@@ -7060,9 +7060,9 @@ dns:
       - https://dns.alidns.com/dns-query#h3=true
 
 proxy-providers:
-  provider1:
+  ${subscribeSalt}_provider:
     type: http
-    path: ./provider1.yaml
+    path: ./${subscribeSalt}_provider.yaml
     url: ${url}
     interval: 3600
     health-check:
@@ -7074,7 +7074,7 @@ proxy-groups:
   - name: 节点选择
     type: select
     use:
-      - provider1
+      - ${subscribeSalt}_provider
     proxies:
       - 手动切换
       - 自动选择
@@ -7084,7 +7084,7 @@ proxy-groups:
   - name: 流媒体
     type: select
     use:
-      - provider1
+      - ${subscribeSalt}_provider
     proxies:
       - 手动切换
       - 自动选择
@@ -7094,7 +7094,7 @@ proxy-groups:
   - name: 手动切换
     type: select
     use:
-      - provider1
+      - ${subscribeSalt}_provider
     proxies: null
   - name: 自动选择
     type: url-test
@@ -7102,7 +7102,7 @@ proxy-groups:
     interval: 36000
     tolerance: 50
     use:
-      - provider1
+      - ${subscribeSalt}_provider
     proxies: null
   - name: 故障转移
     type: fallback
@@ -7110,7 +7110,7 @@ proxy-groups:
     interval: 300
     tolerance: 50
     use:
-      - provider1
+      - ${subscribeSalt}_provider
     proxies:
       - 自动选择
   - name: 负载均衡
@@ -7119,19 +7119,19 @@ proxy-groups:
     interval: 300
     tolerance: 50
     use:
-      - provider1
+      - ${subscribeSalt}_provider
     proxies: null
   - name: 全球代理
     type: select
     use:
-      - provider1
+      - ${subscribeSalt}_provider
     proxies:
       - 手动切换
       - 自动选择
   - name: DNS_Proxy
     type: select
     use:
-      - provider1
+      - ${subscribeSalt}_provider
     proxies:
       - 自动选择
       - 节点选择
@@ -7140,7 +7140,7 @@ proxy-groups:
   - name: Telegram
     type: select
     use:
-      - provider1
+      - ${subscribeSalt}_provider
     proxies:
       - 手动切换
       - 自动选择
@@ -7148,14 +7148,14 @@ proxy-groups:
   - name: YouTube
     type: select
     use:
-      - provider1
+      - ${subscribeSalt}_provider
     proxies:
       - 手动切换
       - 自动选择
   - name: Netflix
     type: select
     use:
-      - provider1
+      - ${subscribeSalt}_provider
     proxies:
       - 流媒体
       - 节点选择
@@ -7163,7 +7163,7 @@ proxy-groups:
   - name: HBO
     type: select
     use:
-      - provider1
+      - ${subscribeSalt}_provider
     proxies:
       - 流媒体
       - 节点选择
@@ -7171,21 +7171,21 @@ proxy-groups:
   - name: Bing
     type: select
     use:
-      - provider1
+      - ${subscribeSalt}_provider
     proxies:
       - 节点选择
       - 自动选择
   - name: OpenAI
     type: select
     use:
-      - provider1
+      - ${subscribeSalt}_provider
     proxies:
       - 节点选择
       - 自动选择
   - name: Disney
     type: select
     use:
-      - provider1
+      - ${subscribeSalt}_provider
     proxies:
       - 流媒体
       - 节点选择
@@ -7193,7 +7193,7 @@ proxy-groups:
   - name: GitHub
     type: select
     use:
-      - provider1
+      - ${subscribeSalt}_provider
     proxies:
       - 手动切换
       - 自动选择
@@ -7201,7 +7201,7 @@ proxy-groups:
   - name: Spotify
     type: select
     use:
-      - provider1
+      - ${subscribeSalt}_provider
     proxies:
       - 流媒体
       - 手动切换
@@ -7210,7 +7210,7 @@ proxy-groups:
   - name: Google
     type: select
     use:
-      - provider1
+      - ${subscribeSalt}_provider
     proxies:
       - 手动切换
       - 自动选择
@@ -7218,13 +7218,13 @@ proxy-groups:
   - name: 国内媒体
     type: select
     use:
-      - provider1
+      - ${subscribeSalt}_provider
     proxies:
       - DIRECT
   - name: 本地直连
     type: select
     use:
-      - provider1
+      - ${subscribeSalt}_provider
     proxies:
       - DIRECT
       - 节点选择
@@ -7232,7 +7232,7 @@ proxy-groups:
   - name: 漏网之鱼
     type: select
     use:
-      - provider1
+      - ${subscribeSalt}_provider
     proxies:
       - DIRECT
       - 节点选择
@@ -7829,7 +7829,7 @@ menu() {
 	echoContent red "\n=============================================================="
 	echoContent green "原作者：mack-a"
 	echoContent green "作者：Wizard89"
-	echoContent green "当前版本：v2.7.22"
+	echoContent green "当前版本：v2.7.23"
 	echoContent green "Github：https://github.com/Wizard89/v2ray-agent"
 	echoContent green "描述：八合一共存脚本\c"
 	showInstallStatus
