@@ -2963,7 +2963,7 @@ EOF
 # Tuic安装
 tuicCoreInstall() {
     if ! echo "${currentInstallProtocolType}" | grep -q "0" || [[ -z "${coreInstallType}" ]]; then
-        echoContent red "\n ---> 由于环境依赖，如安装Tuic，请先安装Xray-core的VLESS_TCP_TLS"
+        echoContent red "\n ---> 由于环境依赖，如安装Tuic，请先安装Xray-core的VLESS_TCP_TLS_Vision"
         exit 0
     fi
     totalProgress=5
@@ -4511,6 +4511,11 @@ addNginx302() {
 # 更新伪装站
 updateNginxBlog() {
 	echoContent skyBlue "\n进度 $1/${totalProgress} : 更换伪装站点"
+
+    if ! echo "${currentInstallProtocolType}" | grep -q "0" || [[ -z "${coreInstallType}" ]]; then
+        echoContent red "\n ---> 由于环境依赖，请先安装Xray-core的VLESS_TCP_TLS_Vision"
+        exit 0
+    fi
 	echoContent red "=============================================================="
 	echoContent yellow "# 如需自定义，请手动复制模版文件到 ${nginxStaticPath} \n"
 	echoContent yellow "1.新手引导"
@@ -6812,7 +6817,7 @@ xrayCoreInstall() {
 # Hysteria安装
 hysteriaCoreInstall() {
     if ! echo "${currentInstallProtocolType}" | grep -q "0" || [[ -z "${coreInstallType}" ]]; then
-        echoContent red "\n ---> 由于环境依赖，如安装hysteria，请先安装Xray-core的VLESS_TCP_TLS"
+        echoContent red "\n ---> 由于环境依赖，如安装hysteria，请先安装Xray-core的VLESS_TCP_TLS_Vision"
 		exit 0
 	fi
 	totalProgress=5
@@ -7829,7 +7834,7 @@ menu() {
 	echoContent red "\n=============================================================="
 	echoContent green "原作者：mack-a"
 	echoContent green "作者：Wizard89"
-	echoContent green "当前版本：v2.7.23"
+	echoContent green "当前版本：v2.7.24"
 	echoContent green "Github：https://github.com/Wizard89/v2ray-agent"
 	echoContent green "描述：八合一共存脚本\c"
 	showInstallStatus
