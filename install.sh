@@ -58,14 +58,14 @@ checkSystem() {
 		removeType='yum -y remove'
 		upgrade="yum update -y --skip-broken"
         checkCentosSELinux
-	elif grep </etc/issue -q -i "debian" && [[ -f "/etc/issue" ]] || grep </etc/issue -q -i "debian" && [[ -f "/proc/version" ]]; then
+    elif [[ -f "/etc/issue" ]] && grep </etc/issue -q -i "debian" || [[ -f "/proc/version" ]] && grep </etc/issue -q -i "debian" ||  [[ -f "/etc/os-release" ]] && grep </etc/os-release -q -i "ID=debian"; then
 		release="debian"
 		installType='apt -y install'
 		upgrade="apt update"
 		updateReleaseInfoChange='apt-get --allow-releaseinfo-change update'
 		removeType='apt -y autoremove'
 
-	elif grep </etc/issue -q -i "ubuntu" && [[ -f "/etc/issue" ]] || grep </etc/issue -q -i "ubuntu" && [[ -f "/proc/version" ]]; then
+	elif [[ -f "/etc/issue" ]] && grep </etc/issue -q -i "ubuntu" || [[ -f "/proc/version" ]] && grep </etc/issue -q -i "ubuntu"; then
 		release="ubuntu"
 		installType='apt -y install'
 		upgrade="apt update"
@@ -406,30 +406,35 @@ checkBTPanel() {
 	if [[ -n $(pgrep -f "BT-Panel") ]]; then
 	    # 读取域名
         if [[ -d '/www/server/panel/vhost/cert/' && -n $(find /www/server/panel/vhost/cert/*/fullchain.pem) ]]; then
+            if [[ -z "${currentHost}" ]]; then
+                echoContent skyBlue "\n读取宝塔配置\n"
 
-            echoContent skyBlue "\n读取宝塔配置\n"
+                find /www/server/panel/vhost/cert/*/fullchain.pem | awk -F "[/]" '{print $7}' | awk '{print NR""":"$0}'
 
-            find /www/server/panel/vhost/cert/*/fullchain.pem | awk -F "[/]" '{print $7}' | awk '{print NR""":"$0}'
+                read -r -p "请输入编号选择:" selectBTDomain
+            else
+                selectBTDomain=$(find /www/server/panel/vhost/cert/*/fullchain.pem | awk -F "[/]" '{print $7}' | awk '{print NR""":"$0}' | grep "${currentHost}" | cut -d ":" -f 1)
+            fi
 
-            read -r -p "请输入编号选择:" selectBTDomain
             if [[ -n "${selectBTDomain}" ]]; then
                 btDomain=$(find /www/server/panel/vhost/cert/*/fullchain.pem | awk -F "[/]" '{print $7}' | awk '{print NR""":"$0}' | grep "${selectBTDomain}:" | cut -d ":" -f 2)
+
                 if [[ -z "${btDomain}" ]]; then
                     echoContent red " ---> 选择错误，请重新选择"
                     checkBTPanel
                 else
                     domain=${btDomain}
-                    ln -s "/www/server/panel/vhost/cert/${btDomain}/fullchain.pem" "/etc/v2ray-agent/tls/${btDomain}.crt"
-                    ln -s "/www/server/panel/vhost/cert/${btDomain}/privkey.pem" "/etc/v2ray-agent/tls/${btDomain}.key"
+                    if [[ ! -f "/etc/v2ray-agent/tls/${btDomain}.crt" && ! -f "/etc/v2ray-agent/tls/${btDomain}.key" ]]; then
+                        ln -s "/www/server/panel/vhost/cert/${btDomain}/fullchain.pem" "/etc/v2ray-agent/tls/${btDomain}.crt"
+                        ln -s "/www/server/panel/vhost/cert/${btDomain}/privkey.pem" "/etc/v2ray-agent/tls/${btDomain}.key"
+                    fi
 
                     nginxStaticPath="/www/wwwroot/${btDomain}/"
                     if [[ -f "/www/wwwroot/${btDomain}/.user.ini" ]]; then
                         chattr -i "/www/wwwroot/${btDomain}/.user.ini"
                     fi
-
                     nginxConfigPath="/www/server/panel/vhost/nginx/"
                 fi
-
             else
                 echoContent red " ---> 选择错误，请重新选择"
                 checkBTPanel
@@ -457,9 +462,9 @@ allowPort() {
 	# 如果防火墙启动状态则添加相应的开放端口
 	if systemctl status netfilter-persistent 2>/dev/null | grep -q "active (exited)"; then
 		local updateFirewalldStatus=
-		if ! iptables -L | grep -q "$1(Wizard89)"; then
+		if ! iptables -L | grep -q "$1/${type}(Wizard89)"; then
 			updateFirewalldStatus=true
-			iptables -I INPUT -p ${type} --dport "$1" -m comment --comment "allow $1(Wizard89)" -j ACCEPT
+			iptables -I INPUT -p ${type} --dport "$1" -m comment --comment "allow $1/${type}(Wizard89)" -j ACCEPT
 		fi
 
 		if echo "${updateFirewalldStatus}" | grep -q "true"; then
@@ -539,7 +544,7 @@ readHysteriaConfig() {
 # 读取Tuic配置
 readTuicConfig() {
     if [[ -n "${tuicConfigPath}" ]]; then
-        tuicPort=$(jq -r .server <"${tuicConfigPath}config.json" | awk -F "[\]][:]" '{print $2}')
+        tuicPort=$(jq -r .server <"${tuicConfigPath}config.json" | cut -d ':' -f 4)
         tuicAlgorithm=$(jq -r .congestion_control <"${tuicConfigPath}config.json")
     fi
 }
@@ -567,34 +572,6 @@ readConfigHostPathUUID() {
 	currentHost=
 	currentPort=
 	currentAdd=
-	# 读取path
-	if [[ -n "${configPath}" ]]; then
-		local fallback
-		fallback=$(jq -r -c '.inbounds[0].settings.fallbacks[]|select(.path)' ${configPath}${frontingType}.json | head -1)
-
-		local path
-		path=$(echo "${fallback}" | jq -r .path | awk -F "[/]" '{print $2}')
-
-		if [[ $(echo "${fallback}" | jq -r .dest) == 31297 ]]; then
-		    currentPath=$(echo "${path}" | awk -F "[w][s]" '{print $1}')
-		elif [[ $(echo "${fallback}" | jq -r .dest) == 31299 ]]; then
-			currentPath=$(echo "${path}" | awk -F "[v][w][s]" '{print $1}')
-		fi
-
-		# 尝试读取alpn h2 Path
-		if [[ -z "${currentPath}" ]]; then
-			dest=$(jq -r -c '.inbounds[0].settings.fallbacks[]|select(.alpn)|.dest' ${configPath}${frontingType}.json | head -1)
-			if [[ "${dest}" == "31302" || "${dest}" == "31304" ]]; then
-
-				if grep -q "trojangrpc {" <${nginxConfigPath}alone.conf; then
-					currentPath=$(grep "trojangrpc {" <${nginxConfigPath}alone.conf | awk -F "[/]" '{print $2}' | awk -F "[t][r][o][j][a][n]" '{print $1}')
-				elif grep -q "grpc {" <${nginxConfigPath}alone.conf; then
-					currentPath=$(grep "grpc {" <${nginxConfigPath}alone.conf | head -1 | awk -F "[/]" '{print $2}' | awk -F "[g][r][p][c]" '{print $1}')
-				fi
-			fi
-		fi
-
-	fi
 
     if [[ "${coreInstallType}" == "1" ]]; then
 
@@ -635,6 +612,35 @@ readConfigHostPathUUID() {
         fi
         currentUUID=$(jq -r .inbounds[0].settings.clients[0].id ${configPath}${frontingType}.json)
         currentPort=$(jq .inbounds[0].port ${configPath}${frontingType}.json)
+    fi
+
+    # 读取path
+    if [[ -n "${configPath}" && -n "${frontingType}" ]]; then
+        local fallback
+        fallback=$(jq -r -c '.inbounds[0].settings.fallbacks[]|select(.path)' ${configPath}${frontingType}.json | head -1)
+
+        local path
+        path=$(echo "${fallback}" | jq -r .path | awk -F "[/]" '{print $2}')
+
+        if [[ $(echo "${fallback}" | jq -r .dest) == 31297 ]]; then
+            currentPath=$(echo "${path}" | awk -F "[w][s]" '{print $1}')
+        elif [[ $(echo "${fallback}" | jq -r .dest) == 31299 ]]; then
+            currentPath=$(echo "${path}" | awk -F "[v][w][s]" '{print $1}')
+        fi
+
+        # 尝试读取alpn h2 Path
+        if [[ -z "${currentPath}" ]]; then
+            dest=$(jq -r -c '.inbounds[0].settings.fallbacks[]|select(.alpn)|.dest' ${configPath}${frontingType}.json | head -1)
+            if [[ "${dest}" == "31302" || "${dest}" == "31304" ]]; then
+                checkBTPanel
+                if grep -q "trojangrpc {" <${nginxConfigPath}alone.conf; then
+                    currentPath=$(grep "trojangrpc {" <${nginxConfigPath}alone.conf | awk -F "[/]" '{print $2}' | awk -F "[t][r][o][j][a][n]" '{print $1}')
+                elif grep -q "grpc {" <${nginxConfigPath}alone.conf; then
+                    currentPath=$(grep "grpc {" <${nginxConfigPath}alone.conf | head -1 | awk -F "[/]" '{print $2}' | awk -F "[g][r][p][c]" '{print $1}')
+                fi
+            fi
+        fi
+
     fi
 }
 
@@ -7893,7 +7899,7 @@ menu() {
 	echoContent red "\n=============================================================="
 	echoContent green "原作者：mack-a"
 	echoContent green "作者：Wizard89"
-	echoContent green "当前版本：v2.7.28"
+	echoContent green "当前版本：v2.7.29"
 	echoContent green "Github：https://github.com/Wizard89/v2ray-agent"
 	echoContent green "描述：八合一共存脚本\c"
 	showInstallStatus
