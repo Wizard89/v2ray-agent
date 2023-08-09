@@ -7625,10 +7625,14 @@ initRealityKey() {
 # 检查reality域名是否符合
 checkRealityDest() {
     local traceResult=
-    traceResult=$(curl -s "https://$(echo "${realityDestDomain}" | cut -d ':' -f 1)/cdn-cgi/trace" | grep "h=")
+    traceResult=$(curl -s "https://$(echo "${realityDestDomain}" | cut -d ':' -f 1)/cdn-cgi/trace" | grep "visit_scheme=https")
     if [[ -n "${traceResult}" ]]; then
-        echoContent red "\n ---> 无法使用托管在cloudflare并开启代理的域名，使用此类型域名可能导致VPS流量被其他人使用，退出安装。"
-        exit 0
+        echoContent red "\n ---> 检测到使用的域名，托管在cloudflare并开启了代理，使用此类型域名可能导致VPS流量被其他人使用[不建议使用]\n"
+        read -r -p "是否继续 ？[y/n]" setRealityDestStatus
+        if [[ "${setRealityDestStatus}" != 'y' ]]; then
+            exit 0
+        fi
+        echoContent yellow "\n ---> 忽略风险，继续使用"
     fi
 }
 
@@ -7911,7 +7915,7 @@ menu() {
 	echoContent red "\n=============================================================="
 	echoContent green "原作者：mack-a"
 	echoContent green "作者：Wizard89"
-	echoContent green "当前版本：v2.7.32"
+	echoContent green "当前版本：v2.7.33"
 	echoContent green "Github：https://github.com/Wizard89/v2ray-agent"
 	echoContent green "描述：八合一共存脚本\c"
 	showInstallStatus
