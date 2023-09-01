@@ -1101,7 +1101,12 @@ EOF
         if echo "${checkPortOpenResult}" | grep -q "cloudflare"; then
             echoContent yellow " ---> 请关闭云朵后等待三分钟重新尝试"
         else
-            echoContent red " ---> 错误日志：${checkPortOpenResult}，如果日志不为空可以提交issue反馈"
+            if [[ -z "${checkPortOpenResult}" ]]; then
+                echoContent red " ---> 请检查是否有网页防火墙，比如Oracle等云服务商"
+                echoContent red " ---> 检查是否自己安装过nginx并且有配置冲突，可以尝试DD纯净系统后重新尝试"
+            else
+                echoContent red " ---> 错误日志：${checkPortOpenResult}，请将此错误日志通过issues提交反馈"
+            fi
         fi
         exit 0
     fi
@@ -7921,7 +7926,7 @@ menu() {
 	echoContent red "\n=============================================================="
 	echoContent green "原作者：mack-a"
 	echoContent green "作者：Wizard89"
-	echoContent green "当前版本：v2.7.35"
+	echoContent green "当前版本：v2.8.1"
 	echoContent green "Github：https://github.com/Wizard89/v2ray-agent"
 	echoContent green "描述：八合一共存脚本\c"
 	showInstallStatus
