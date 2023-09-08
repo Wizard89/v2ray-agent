@@ -6696,8 +6696,8 @@ customXrayInstall() {
 		updateRevisionNginxConf
 		handleNginx start
 
-		# 安装V2Ray
-		installXray 7 true
+		# 安装Xray
+		installXray 7 false
 		installXrayService 8
 		initXrayConfig custom 9
 		cleanUp v2rayDel
@@ -6812,8 +6812,7 @@ xrayCoreInstall() {
 	handleNginx stop
 	randomPathFunction 5
 	# 安装Xray
-	# handleV2Ray stop
-	installXray 6
+	installXray 6 false
 	installXrayService 7
 	customCDNIP 8
 	initXrayConfig all 9
@@ -7765,7 +7764,7 @@ xrayCoreRealityInstall() {
     # 下载核心
     #    prereleaseStatus=true
     #    updateXray
-    installXray 3 true
+    installXray 3 false
     # 生成 privateKey、配置回落地址、配置serverNames
     installXrayService 6
     # initXrayRealityConfig 5
@@ -7926,7 +7925,7 @@ menu() {
 	echoContent red "\n=============================================================="
 	echoContent green "原作者：mack-a"
 	echoContent green "作者：Wizard89"
-	echoContent green "当前版本：v2.8.1"
+	echoContent green "当前版本：v2.8.2"
 	echoContent green "Github：https://github.com/Wizard89/v2ray-agent"
 	echoContent green "描述：八合一共存脚本\c"
 	showInstallStatus
