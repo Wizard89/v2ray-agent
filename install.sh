@@ -2815,28 +2815,28 @@ initHysteriaPort() {
 
 # 初始化hysteria的协议
 initHysteriaProtocol() {
-	echoContent skyBlue "\n请选择协议类型"
-	echoContent red "=============================================================="
+    echoContent skyBlue "\n请选择协议类型"
+    echoContent red "=============================================================="
     echoContent yellow "1.udp(QUIC)(默认)"
-	echoContent yellow "2.faketcp"
-	echoContent yellow "3.wechat-video"
-	echoContent red "=============================================================="
-	read -r -p "请选择:" selectHysteriaProtocol
-	case ${selectHysteriaProtocol} in
-	1)
-		hysteriaProtocol="udp"
-		;;
-	2)
-		hysteriaProtocol="faketcp"
-		;;
-	3)
-		hysteriaProtocol="wechat-video"
-		;;
-	*)
-		hysteriaProtocol="udp"
-		;;
-	esac
-	echoContent yellow "\n ---> 协议: ${hysteriaProtocol}\n"
+    echoContent yellow "2.faketcp"
+    echoContent yellow "3.wechat-video"
+    echoContent red "=============================================================="
+    read -r -p "请选择:" selectHysteriaProtocol
+    case ${selectHysteriaProtocol} in
+    1)
+        hysteriaProtocol="udp"
+        ;;
+    2)
+        hysteriaProtocol="faketcp"
+        ;;
+    3)
+        hysteriaProtocol="wechat-video"
+        ;;
+    *)
+        hysteriaProtocol="udp"
+        ;;
+    esac
+    echoContent yellow "\n ---> 协议: ${hysteriaProtocol}\n"
 }
 
 # 初始化hysteria网络信息
