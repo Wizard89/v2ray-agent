@@ -2768,49 +2768,49 @@ addClients() {
 }
 # 添加hysteria配置
 addClientsHysteria() {
-	local path=$1
-	local addClientsStatus=$2
+    local path=$1
+    local addClientsStatus=$2
 
-	if [[ ${addClientsStatus} == "true" && -n "${previousClients}" ]]; then
-		local uuids=
-		uuids=$(echo "${previousClients}" | jq -r [.[].id])
+    if [[ ${addClientsStatus} == "true" && -n "${previousClients}" ]]; then
+        local uuids=
+        uuids=$(echo "${previousClients}" | jq -r [.[].id])
 
-		if [[ "${frontingType}" == "02_trojan_TCP_inbounds" ]]; then
-			uuids=$(echo "${previousClients}" | jq -r [.[].password])
-		fi
-		config=$(jq -r ".auth.config = ${uuids}" "${path}")
-		echo "${config}" | jq . >"${path}"
-	fi
+        if [[ "${frontingType}" == "02_trojan_TCP_inbounds" ]]; then
+            uuids=$(echo "${previousClients}" | jq -r [.[].password])
+        fi
+        config=$(jq -r ".auth.config = ${uuids}" "${path}")
+        echo "${config}" | jq . >"${path}"
+    fi
 }
 
 # 初始化hysteria端口
 initHysteriaPort() {
-	readSingBoxConfig
-	if [[ -n "${hysteriaPort}" ]]; then
-		read -r -p "读取到上次安装时的端口，是否使用上次安装时的端口？[y/n]:" historyHysteriaPortStatus
-		if [[ "${historyHysteriaPortStatus}" == "y" ]]; then
-			echoContent yellow "\n ---> 端口: ${hysteriaPort}"
-		else
-			hysteriaPort=
-		fi
-	fi
+    readSingBoxConfig
+    if [[ -n "${hysteriaPort}" ]]; then
+        read -r -p "读取到上次安装时的端口，是否使用上次安装时的端口？[y/n]:" historyHysteriaPortStatus
+        if [[ "${historyHysteriaPortStatus}" == "y" ]]; then
+            echoContent yellow "\n ---> 端口: ${hysteriaPort}"
+        else
+            hysteriaPort=
+        fi
+    fi
 
-	if [[ -z "${hysteriaPort}" ]]; then
-		echoContent yellow "请输入Hysteria端口[回车随机10000-30000]，不可与其他服务重复"
-		read -r -p "端口:" hysteriaPort
+    if [[ -z "${hysteriaPort}" ]]; then
+        echoContent yellow "请输入Hysteria端口[回车随机10000-30000]，不可与其他服务重复"
+        read -r -p "端口:" hysteriaPort
         if [[ -z "${hysteriaPort}" ]]; then
             hysteriaPort=$((RANDOM % 20001 + 10000))
-		fi
-	fi
-	if [[ -z ${hysteriaPort} ]]; then
-		echoContent red " ---> 端口不可为空"
-		initHysteriaPort "$2"
-	elif ((hysteriaPort < 1 || hysteriaPort > 65535)); then
-		echoContent red " ---> 端口不合法"
-		initHysteriaPort "$2"
-	fi
-	allowPort "${hysteriaPort}"
-	allowPort "${hysteriaPort}" "udp"
+        fi
+    fi
+    if [[ -z ${hysteriaPort} ]]; then
+        echoContent red " ---> 端口不可为空"
+        initHysteriaPort "$2"
+    elif ((hysteriaPort < 1 || hysteriaPort > 65535)); then
+        echoContent red " ---> 端口不合法"
+        initHysteriaPort "$2"
+    fi
+    allowPort "${hysteriaPort}"
+    allowPort "${hysteriaPort}" "udp"
 }
 
 # 初始化hysteria的协议
