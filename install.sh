@@ -6912,7 +6912,6 @@ selectCoreInstall() {
 	echoContent skyBlue "\n功能 1/${totalProgress} : 选择核心安装"
 	echoContent red "\n=============================================================="
 	echoContent yellow "1.Xray-core"
-	echoContent yellow "2.v2ray-core"
     #    echoContent yellow "2.sing-box"
 	echoContent red "=============================================================="
 	read -r -p "请选择:" selectCoreType
