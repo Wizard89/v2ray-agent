@@ -5188,7 +5188,7 @@ addUser() {
 
             clients=$(jq -r ".inbounds[0].users = ${clients}" "${singBoxConfigPath}config/tuic.json")
 
-            echo "${hysteriaResult}" | jq . >"${singBoxConfigPath}config/tuic.json"
+            echo "${clients}" | jq . >"${singBoxConfigPath}config/tuic.json"
         fi
     done
 
@@ -8174,7 +8174,7 @@ menu() {
 	echoContent red "\n=============================================================="
 	echoContent green "原作者：mack-a"
 	echoContent green "作者：Wizard89"
-	echoContent green "当前版本：v2.8.16"
+	echoContent green "当前版本：v2.8.17"
 	echoContent green "Github：https://github.com/Wizard89/v2ray-agent"
 	echoContent green "描述：八合一共存脚本\c"
 	showInstallStatus
