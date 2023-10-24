@@ -3702,6 +3702,11 @@ initXrayConfig() {
             uuid=$(/etc/v2ray-agent/xray/xray uuid)
         fi
 
+        echoContent yellow "\n请输入自定义用户名[需合法]，[回车]随机随机用户名"
+        read -r -p '用户名:' customEmail
+        if [[ -z ${customEmail} ]]; then
+            customEmail="$(echo "${uuid}" | cut -d "-" -f 1)-VLESS_TCP/TLS_Vision"
+        fi
     fi
 
     if [[ -z "${addClientsStatus}" && -z "${uuid}" ]]; then
@@ -3711,8 +3716,8 @@ initXrayConfig() {
     fi
 
     if [[ -n "${uuid}" ]]; then
-        currentClients='[{"id":"'${uuid}'","add":"'${add}'","flow":"xtls-rprx-vision","email":"'${uuid}'-VLESS_TCP/TLS_Vision"}]'
-        echoContent yellow "\n ${uuid}"
+        currentClients='[{"id":"'${uuid}'","add":"'${add}'","flow":"xtls-rprx-vision","email":"'${customEmail}'"}]'
+        echoContent yellow "\n ${customEmail}:${uuid}"
     fi
 
     # log
@@ -5078,7 +5083,6 @@ customUserEmail() {
 
 # 添加用户
 addUser() {
-    readConfigHostPathUUID
 	read -r -p "请输入要添加的用户数量:" userNum
 	echo
 	if [[ -z ${userNum} || ${userNum} -le 0 ]]; then
@@ -5087,26 +5091,21 @@ addUser() {
 	fi
 
 	# 生成用户
-	if [[ "${userNum}" == "1" ]]; then
-		customUUID
-		customUserEmail
-	fi
+	#    if [[ "${userNum}" == "1" ]]; then
+	#    	customUUID
+	#    	customUserEmail
+	#    fi
 
 	while [[ ${userNum} -gt 0 ]]; do
+        readConfigHostPathUUID
 		local users=
 		((userNum--)) || true
 
-		if [[ -n "${currentCustomUUID}" ]]; then
-			uuid=${currentCustomUUID}
-		else
-			uuid=$(${ctlPath} uuid)
-		fi
-        local email=
-        if [[ -z "${currentCustomEmail}" ]]; then
-            email=${uuid}
-        else
-            email=${currentCustomEmail}
-        fi
+        customUUID
+        customUserEmail
+
+        uuid=${currentCustomUUID}
+        email=${currentCustomEmail}
 
         # VLESS TCP
         if echo "${currentInstallProtocolType}" | grep -q 0; then
@@ -5316,7 +5315,6 @@ addUser() {
             echo "${hysteriaResult}" | jq . >"${hysteriaConfigPath}config/tuic.json"
 		fi
 	done
-
 	reloadCore
 	echoContent green " ---> 添加完成"
 	manageAccount 1
@@ -8174,7 +8172,7 @@ menu() {
 	echoContent red "\n=============================================================="
 	echoContent green "原作者：mack-a"
 	echoContent green "作者：Wizard89"
-	echoContent green "当前版本：v2.8.17"
+	echoContent green "当前版本：v2.8.18"
 	echoContent green "Github：https://github.com/Wizard89/v2ray-agent"
 	echoContent green "描述：八合一共存脚本\c"
 	showInstallStatus
