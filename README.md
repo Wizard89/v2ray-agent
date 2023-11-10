@@ -1,4 +1,4 @@
-# v2ray-agent
+# Xray-core/sing-box 一键脚本快速安装
 
 - [感谢 JetBrains 提供的非商业开源软件开发授权](https://www.jetbrains.com/?from=v2ray-agent)
 - [Thanks for non-commercial open source development authorization by JetBrains](https://www.jetbrains.com/?from=v2ray-agent)
@@ -46,15 +46,20 @@
 - 支持BT下载管理、日志管理、域名黑名单管理、核心管理、伪装站点管理、路由规则文件管理
 - [支持自定义证书安装](https://github.com/Wizard89/v2ray-agent/blob/master/documents/install_tls.md)
 
-## 支持的安装类型
+## 核心
 
-- VLESS+TCP+TLS_Vision【推荐】
-- VLESS+gRPC+TLS【支持CDN、IPv6、延迟低】
-- VLESS+WS+TLS【支持CDN、IPv6】
-- Trojan+TCP+TLS
-- Trojan+gRPC+TLS【支持CDN、IPv6、延迟低】
-- VMess+WS+TLS【支持CDN、IPv6】
-- Hysteria【推荐】
+- Xray-core
+- v2ray-core[暂停维护]
+- sing-box
+
+## 协议
+
+> 以下均使用TLS，支持多种协议组合
+- VLESS(Reality、Vision、TCP、WS、gRPC)
+- VMess(TCP、WS)
+- Trojan(TCP、gRPC)
+- Hysteria2
+- Tuic
 
 ## 线路推荐
 
