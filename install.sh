@@ -3246,11 +3246,25 @@ removeSingBoxRouteRule() {
 addSingBoxOutbound() {
     local tag=$1
     local type="ipv4"
+    local detour=$2
     if echo "${tag}" | grep -q "IPv6"; then
         type=ipv6
     fi
-
-    cat <<EOF >"${singBoxConfigPath}config/${tag}.json"
+    if [[ -n "${detour}" ]]; then
+        cat <<EOF >"${singBoxConfigPath}config/${tag}.json"
+{
+     "outbounds": [
+        {
+             "type": "direct",
+             "tag": "${tag}",
+             "detour": "${detour}",
+             "domain_strategy": "${type}_only"
+        }
+    ]
+}
+EOF
+    else
+        cat <<EOF >"${singBoxConfigPath}config/${tag}.json"
 {
      "outbounds": [
         {
@@ -3261,30 +3275,28 @@ addSingBoxOutbound() {
     ]
 }
 EOF
+    fi
 }
 
+# 移除sing-box出站
+removeSingBoxOutbound() {
+
+    local tag=$1
+    if [[ -f "${singBoxConfigPath}config/${tag}.json" ]]; then
+        rm "${singBoxConfigPath}config/${tag}.json"
+    fi
+
+}
 # 初始化wireguard出站信息
 addSingBoxWireGuardOut() {
     readConfigWarpReg
-
     cat <<EOF >"${singBoxConfigPath}config/wireguard_outbound.json"
 {
      "outbounds": [
-        {
-             "type": "direct",
-             "tag": "wireguard-out-IPv4",
-             "detour": "wireguard-out",
-             "domain_strategy": "ipv4_only"
-        },
-        {
-             "type": "direct",
-             "tag": "wireguard-out-IPv6",
-             "detour": "wireguard-out",
-             "domain_strategy": "ipv6_only"
-        },
+
         {
             "type": "wireguard",
-            "tag": "wireguard-out",
+            "tag": "wireguard_out",
             "server": "162.159.192.1",
             "server_port": 2408,
             "local_address": [
@@ -3486,18 +3498,18 @@ EOF
             "settings":{
                 "domainStrategy":"UseIPv4"
             },
-            "tag":"IPv4-out"
+            "tag":"IPv4_out"
         },
         {
             "protocol":"freedom",
             "settings":{
                 "domainStrategy":"UseIPv6"
             },
-            "tag":"IPv6-out"
+            "tag":"IPv6_out"
         },
         {
             "protocol":"blackhole",
-            "tag":"blackhole-out"
+            "tag":"blackhole_out"
         }
     ]
 }
@@ -3934,14 +3946,14 @@ EOF
             "settings":{
                 "domainStrategy":"UseIPv4"
             },
-            "tag":"IPv4-out"
+            "tag":"IPv4_out"
         },
         {
             "protocol":"freedom",
             "settings":{
                 "domainStrategy":"UseIPv6"
             },
-            "tag":"IPv6-out"
+            "tag":"IPv6_out"
         },
         {
             "protocol":"freedom",
@@ -3950,7 +3962,7 @@ EOF
         },
         {
             "protocol":"blackhole",
-            "tag":"blackhole-out"
+            "tag":"blackhole_out"
         }
     ]
 }
@@ -5763,7 +5775,7 @@ ipv6Routing() {
 	read -r -p "请选择:" ipv6Status
 	if [[ "${ipv6Status}" == "1" ]]; then
 
-        jq -r -c '.routing.rules[]|select (.outboundTag=="IPv6-out")|.domain' ${configPath}09_routing.json | jq -r
+        jq -r -c '.routing.rules[]|select (.outboundTag=="IPv6_out")|.domain' ${configPath}09_routing.json | jq -r
         exit 0
     elif [[ "${ipv6Status}" == "2" ]]; then	
 		echoContent red "=============================================================="
@@ -5775,21 +5787,21 @@ ipv6Routing() {
         echoContent yellow "5.添加规则为增量配置，不会删除之前设置的内容\n"
 
         read -r -p "请按照上面示例录入域名:" domainList
-        addInstallRouting IPv6-out outboundTag "${domainList}"
+        addInstallRouting IPv6_out outboundTag "${domainList}"
 
-		unInstallOutbounds IPv6-out
+		unInstallOutbounds IPv6_out
 
-		outbounds=$(jq -r '.outbounds += [{"protocol":"freedom","settings":{"domainStrategy":"UseIPv6"},"tag":"IPv6-out"}]' ${configPath}10_ipv4_outbounds.json)
+		outbounds=$(jq -r '.outbounds += [{"protocol":"freedom","settings":{"domainStrategy":"UseIPv6"},"tag":"IPv6_out"}]' ${configPath}10_ipv4_outbounds.json)
 
 		echo "${outbounds}" | jq . >${configPath}10_ipv4_outbounds.json
 
-        configurationSingBoxRoute add IPv6-out "${domainList}"
-        addSingBoxOutbound IPv6-out
+        configurationSingBoxRoute add IPv6_out "${domainList}"
+        addSingBoxOutbound IPv6_out
+        addSingBoxOutbound IPv4_out
 		echoContent green " ---> 添加成功"
 
     elif [[ "${ipv6Status}" == "3" ]]; then
-        echoContent green " ---> 不可用"
-        exit 0
+
         echoContent red "=============================================================="
         echoContent yellow "# 注意事项\n"
         echoContent yellow "1.会删除设置的所有分流规则"
@@ -5805,13 +5817,22 @@ ipv6Routing() {
                         "settings":{
                             "domainStrategy":"UseIPv6"
                         },
-                        "tag":"IPv6-out"
+                        "tag":"IPv6_out"
                     }
                 ]
             }
 EOF
             rm ${configPath}09_routing.json >/dev/null 2>&1
             echoContent green " ---> IPv6全局出站设置成功"
+
+            configurationSingBoxRoute delete wireguard_out_IPv4
+            configurationSingBoxRoute delete wireguard_out_IPv6
+            removeSingBoxOutbound IPv4_out
+            removeSingBoxOutbound wireguard_out_IPv4
+            removeSingBoxOutbound wireguard_outbound
+
+            addSingBoxOutbound IPv6_out
+
         else
             echoContent green " ---> 放弃设置"
             exit 0
@@ -5819,14 +5840,14 @@ EOF
 
     elif [[ "${ipv6Status}" == "4" ]]; then
 
-		unInstallRouting IPv6-out outboundTag
+		unInstallRouting IPv6_out outboundTag
 
-		unInstallOutbounds IPv6-out
+		unInstallOutbounds IPv6_out
 
-        configurationSingBoxRoute delete IPv6-out
+        configurationSingBoxRoute delete IPv6_out
 
-        if ! grep -q "IPv4-out" <"${configPath}10_ipv4_outbounds.json"; then
-            outbounds=$(jq -r '.outbounds += [{"protocol":"freedom","settings": {"domainStrategy": "UseIPv4"},"tag":"IPv4-out"}]' ${configPath}10_ipv4_outbounds.json)
+        if ! grep -q "IPv4_out" <"${configPath}10_ipv4_outbounds.json"; then
+            outbounds=$(jq -r '.outbounds += [{"protocol":"freedom","settings": {"domainStrategy": "UseIPv4"},"tag":"IPv4_out"}]' ${configPath}10_ipv4_outbounds.json)
 
             echo "${outbounds}" | jq . >${configPath}10_ipv4_outbounds.json
         fi
@@ -5864,9 +5885,9 @@ btTools() {
 
 		if [[ -f "${configPath}09_routing.json" ]]; then
 
-			unInstallRouting blackhole-out outboundTag
+			unInstallRouting blackhole_out outboundTag
 
-			routing=$(jq -r '.routing.rules += [{"type":"field","outboundTag":"blackhole-out","protocol":["bittorrent"]}]' ${configPath}09_routing.json)
+			routing=$(jq -r '.routing.rules += [{"type":"field","outboundTag":"blackhole_out","protocol":["bittorrent"]}]' ${configPath}09_routing.json)
 
 			echo "${routing}" | jq . >${configPath}09_routing.json
 
@@ -5878,7 +5899,7 @@ btTools() {
         "rules": [
           {
             "type": "field",
-            "outboundTag": "blackhole-out",
+            "outboundTag": "blackhole_out",
             "protocol": [ "bittorrent" ]
           }
         ]
@@ -5889,9 +5910,9 @@ EOF
 
 		installSniffing
 
-		unInstallOutbounds blackhole-out
+		unInstallOutbounds blackhole_out
 
-		outbounds=$(jq -r '.outbounds += [{"protocol":"blackhole","tag":"blackhole-out"}]' ${configPath}10_ipv4_outbounds.json)
+		outbounds=$(jq -r '.outbounds += [{"protocol":"blackhole","tag":"blackhole_out"}]' ${configPath}10_ipv4_outbounds.json)
 
 		echo "${outbounds}" | jq . >${configPath}10_ipv4_outbounds.json
 
@@ -5901,9 +5922,9 @@ EOF
 
 		unInstallSniffing
 
-		unInstallRouting blackhole-out outboundTag bittorrent
+		unInstallRouting blackhole_out outboundTag bittorrent
 
-		#		unInstallOutbounds blackhole-out
+		#		unInstallOutbounds blackhole_out
 
 		echoContent green " ---> BT下载打开成功"
 	else
@@ -5932,7 +5953,7 @@ blacklist() {
 
 	read -r -p "请选择:" blacklistStatus
 	if [[ "${blacklistStatus}" == "1" ]]; then
-        jq -r -c '.routing.rules[]|select (.outboundTag=="blackhole-out")|.domain' ${configPath}09_routing.json | jq -r
+        jq -r -c '.routing.rules[]|select (.outboundTag=="blackhole_out")|.domain' ${configPath}09_routing.json | jq -r
         exit 0
     elif [[ "${blacklistStatus}" == "2" ]]; then
 		echoContent red "=============================================================="
@@ -5945,22 +5966,22 @@ blacklist() {
 		read -r -p "请按照上面示例录入域名:" domainList
 
 		if [[ -f "${configPath}09_routing.json" ]]; then
-            addInstallRouting blackhole-out outboundTag "${domainList}"
+            addInstallRouting blackhole_out outboundTag "${domainList}"
         fi
-        unInstallOutbounds blackhole-out
+        unInstallOutbounds blackhole_out
 
-        outbounds=$(jq -r '.outbounds += [{"protocol":"blackhole","tag":"blackhole-out"}]' ${configPath}10_ipv4_outbounds.json)
+        outbounds=$(jq -r '.outbounds += [{"protocol":"blackhole","tag":"blackhole_out"}]' ${configPath}10_ipv4_outbounds.json)
 
         echo "${outbounds}" | jq . >${configPath}10_ipv4_outbounds.json
 
 		echoContent green " ---> 添加成功"
 
     elif [[ "${blacklistStatus}" == "3" ]]; then
-        addInstallRouting blackhole-out outboundTag "cn"
+        addInstallRouting blackhole_out outboundTag "cn"
 
-        unInstallOutbounds blackhole-out
+        unInstallOutbounds blackhole_out
 
-        outbounds=$(jq -r '.outbounds += [{"protocol":"blackhole","tag":"blackhole-out"}]' ${configPath}10_ipv4_outbounds.json)
+        outbounds=$(jq -r '.outbounds += [{"protocol":"blackhole","tag":"blackhole_out"}]' ${configPath}10_ipv4_outbounds.json)
 
         echo "${outbounds}" | jq . >${configPath}10_ipv4_outbounds.json
 
@@ -5968,7 +5989,7 @@ blacklist() {
 
     elif [[ "${blacklistStatus}" == "4" ]]; then
 
-		unInstallRouting blackhole-out outboundTag
+		unInstallRouting blackhole_out outboundTag
 
 		echoContent green " ---> 域名黑名单删除成功"
 	else
@@ -6035,7 +6056,7 @@ EOF
     done < <(echo "${domain}" | tr ',' '\n')
 
     unInstallRouting "${tag}" "${type}"
-    if ! grep -q "gstatic.com" ${configPath}09_routing.json && [[ "${tag}" == "blackhole-out" ]]; then
+    if ! grep -q "gstatic.com" ${configPath}09_routing.json && [[ "${tag}" == "blackhole_out" ]]; then
         local routing=
         routing=$(jq -r ".routing.rules += [{\"type\": \"field\",\"domain\": [\"gstatic.com\"],\"outboundTag\": \"direct\"}]" ${configPath}09_routing.json)
         echo "${routing}" | jq . >${configPath}09_routing.json
@@ -6206,8 +6227,8 @@ EOF
 
 		unInstallOutbounds warp-socks-out
 
-        if ! grep -q "IPv4-out" <"${configPath}10_ipv4_outbounds.json"; then
-            outbounds=$(jq -r '.outbounds += [{"protocol":"freedom","settings": {"domainStrategy": "UseIPv4"},"tag":"IPv4-out"}]' ${configPath}10_ipv4_outbounds.json)
+        if ! grep -q "IPv4_out" <"${configPath}10_ipv4_outbounds.json"; then
+            outbounds=$(jq -r '.outbounds += [{"protocol":"freedom","settings": {"domainStrategy": "UseIPv4"},"tag":"IPv4_out"}]' ${configPath}10_ipv4_outbounds.json)
 
             echo "${outbounds}" | jq . >${configPath}10_ipv4_outbounds.json
         fi
@@ -6261,7 +6282,7 @@ installWarpReg() {
 showWireGuardDomain() {
     # todo
     # xray
-    jq -r -c '.routing.rules[]|select (.outboundTag=="wireguard-out-'"${type}"'")|.domain' ${configPath}09_routing.json | jq -r
+    jq -r -c '.routing.rules[]|select (.outboundTag=="wireguard_out_'"${type}"'")|.domain' ${configPath}09_routing.json | jq -r
     # sing-box
 }
 
@@ -6273,10 +6294,10 @@ addWireGuardRoute() {
     # xray
     if [[ -n "${configPath}" ]]; then
 
-        addInstallRouting wireguard-out-"${type}" "${tag}" "${domainList}"
-        unInstallOutbounds wireguard-out-"${type}"
+        addInstallRouting wireguard_out_"${type}" "${tag}" "${domainList}"
+        unInstallOutbounds wireguard_out_"${type}"
         local outbounds
-        outbounds=$(jq -r '.outbounds += [{"protocol":"wireguard","settings":{"secretKey":"'"${secretKeyWarpReg}"'","address":["'"${address}"'"],"peers":[{"publicKey":"'"${publicKeyWarpReg}"'","allowedIPs":["0.0.0.0/0","::/0"],"endpoint":"162.159.192.1:2408"}],"reserved":'"${reservedWarpReg}"',"mtu":1280},"tag":"wireguard-out-'"${type}"'"}]' ${configPath}10_ipv4_outbounds.json)
+        outbounds=$(jq -r '.outbounds += [{"protocol":"wireguard","settings":{"secretKey":"'"${secretKeyWarpReg}"'","address":["'"${address}"'"],"peers":[{"publicKey":"'"${publicKeyWarpReg}"'","allowedIPs":["0.0.0.0/0","::/0"],"endpoint":"162.159.192.1:2408"}],"reserved":'"${reservedWarpReg}"',"mtu":1280},"tag":"wireguard_out_'"${type}"'"}]' ${configPath}10_ipv4_outbounds.json)
 
         echo "${outbounds}" | jq . >${configPath}10_ipv4_outbounds.json
     fi
@@ -6284,7 +6305,8 @@ addWireGuardRoute() {
     if [[ -n "${singBoxConfigPath}" ]]; then
 
         # rule
-        addSingBoxRouteRule "wireguard-out-${type}" "${domainList}"
+        addSingBoxRouteRule "wireguard_out_${type}" "${domainList}"
+        addSingBoxOutbound "wireguard_out_${type}" "wireguard_out"
         # outbound
         addSingBoxWireGuardOut
     fi
@@ -6296,18 +6318,18 @@ unInstallWireGuard() {
     if [[ -n "${configPath}" ]]; then
 
         if [[ "${type}" == "IPv4" ]]; then
-            if ! grep -q "wireguard-out-IPv6" <${configPath}10_ipv4_outbounds.json; then
+            if ! grep -q "wireguard_out_IPv6" <${configPath}10_ipv4_outbounds.json; then
                 rm -rf /etc/v2ray-agent/warp/config >/dev/null 2>&1
             fi
         elif [[ "${type}" == "IPv6" ]]; then
-            if ! grep -q "wireguard-out-IPv4" <${configPath}10_ipv4_outbounds.json; then
+            if ! grep -q "wireguard_out_IPv4" <${configPath}10_ipv4_outbounds.json; then
                 rm -rf /etc/v2ray-agent/warp/config >/dev/null 2>&1
             fi
         fi
     fi
 
     if [[ -n "${singBoxConfigPath}" ]]; then
-        if [[ ! -f "${singBoxConfigPath}config/wireguard-out-IPv6_route.json" && ! -f "${singBoxConfigPath}config/wireguard-out-IPv4_route.json" ]]; then
+        if [[ ! -f "${singBoxConfigPath}config/wireguard_out_IPv6_route.json" && ! -f "${singBoxConfigPath}config/wireguard_out_IPv4_route.json" ]]; then
             rm ${singBoxConfigPath}config/wireguard_outbound.json >/dev/null 2>&1
             rm -rf /etc/v2ray-agent/warp/config >/dev/null 2>&1
         fi
@@ -6320,11 +6342,11 @@ removeWireGuardRoute() {
     # xray
     if [[ -n "${configPath}" ]]; then
 
-        unInstallRouting wireguard-out-"${type}" outboundTag
+        unInstallRouting wireguard_out_"${type}" outboundTag
 
-        unInstallOutbounds wireguard-out-"${type}"
+        unInstallOutbounds wireguard_out_"${type}"
 
-        if ! grep -q "IPv4-out" <"${configPath}10_ipv4_outbounds.json"; then
+        if ! grep -q "IPv4_out" <"${configPath}10_ipv4_outbounds.json"; then
 
             cat <<EOF >${configPath}10_ipv4_outbounds.json
 {
@@ -6334,18 +6356,18 @@ removeWireGuardRoute() {
             "settings":{
                 "domainStrategy":"UseIPv4"
             },
-            "tag":"IPv4-out"
+            "tag":"IPv4_out"
         },
         {
             "protocol":"freedom",
             "settings":{
                 "domainStrategy":"UseIPv6"
             },
-            "tag":"IPv6-out"
+            "tag":"IPv6_out"
         },
         {
             "protocol":"blackhole",
-            "tag":"blackhole-out"
+            "tag":"blackhole_out"
         }
     ]
 }
@@ -6357,7 +6379,7 @@ EOF
 
     # sing-box
     if [[ -n "${singBoxConfigPath}" ]]; then
-        removeSingBoxRouteRule "wireguard-out-${type}"
+        removeSingBoxRouteRule "wireguard_out_${type}"
     fi
 
     unInstallWireGuard "${type}"
@@ -6395,20 +6417,10 @@ warpRoutingReg() {
 
         read -r -p "请按照上面示例录入域名:" domainList
         addWireGuardRoute "${type}" outboundTag "${domainList}"
-
-        #        unInstallOutbounds wireguard-out-"${type}"
-
-        #        local outbounds
-        #        outbounds=$(jq -r '.outbounds += [{"protocol":"wireguard","settings":{"secretKey":"'"${secretKeyWarpReg}"'","address":["'"${address}"'"],"peers":[{"publicKey":"'"${publicKeyWarpReg}"'","allowedIPs":["0.0.0.0/0","::/0"],"endpoint":"162.159.192.1:2408"}],"reserved":'"${reservedWarpReg}"',"mtu":1280},"tag":"wireguard-out-'"${type}"'"}]' ${configPath}10_ipv4_outbounds.json)
-        #
-        #        echo "${outbounds}" | jq . >${configPath}10_ipv4_outbounds.json
-
         echoContent green " ---> 添加成功"
 
     elif [[ "${warpStatus}" == "3" ]]; then
 
-        echoContent green " ---> 不可用"
-        exit 0
         echoContent red "=============================================================="
         echoContent yellow "# 注意事项\n"
         echoContent yellow "1.会删除设置的所有分流规则"
@@ -6441,12 +6453,29 @@ warpRoutingReg() {
                 "reserved": ${reservedWarpReg},
                 "mtu": 1280
             },
-            "tag": "wireguard-out-${type}"
+            "tag": "wireguard_out_${type}"
         }
     ]
 }
 EOF
             rm ${configPath}09_routing.json >/dev/null 2>&1
+
+            configurationSingBoxRoute delete IPv4
+            configurationSingBoxRoute delete IPv6
+            removeSingBoxOutbound IPv4_out
+            removeSingBoxOutbound IPv6_out
+
+            if [[ "${type}" == "IPv4" ]]; then
+                configurationSingBoxRoute delete wireguard_out_IPv6
+                removeSingBoxOutbound wireguard_out_IPv6
+            else
+                configurationSingBoxRoute delete wireguard_out_IPv4
+                removeSingBoxOutbound wireguard_out_IPv4
+            fi
+
+            # outbound
+            addSingBoxOutbound "wireguard_out_${type}" "wireguard_out"
+            addSingBoxWireGuardOut
             echoContent green " ---> WARP全局出站设置成功"
         else
             echoContent green " ---> 放弃设置"
@@ -6726,7 +6755,7 @@ EOF
             unInstallRouting dokodemoDoor-443 inboundTag
 
             local routing
-            routing=$(jq -r ".routing.rules += [{\"source\":[\"${setIPs//,/\",\"}\"],\"domains\":${domains},\"type\":\"field\",\"inboundTag\":[\"dokodemoDoor-80\",\"dokodemoDoor-443\"],\"outboundTag\":\"direct\"},{\"type\":\"field\",\"inboundTag\":[\"dokodemoDoor-80\",\"dokodemoDoor-443\"],\"outboundTag\":\"blackhole-out\"}]" ${configPath}09_routing.json)
+            routing=$(jq -r ".routing.rules += [{\"source\":[\"${setIPs//,/\",\"}\"],\"domains\":${domains},\"type\":\"field\",\"inboundTag\":[\"dokodemoDoor-80\",\"dokodemoDoor-443\"],\"outboundTag\":\"direct\"},{\"type\":\"field\",\"inboundTag\":[\"dokodemoDoor-80\",\"dokodemoDoor-443\"],\"outboundTag\":\"blackhole_out\"}]" ${configPath}09_routing.json)
             echo "${routing}" | jq . >${configPath}09_routing.json
         else
 
@@ -6752,7 +6781,7 @@ EOF
           "dokodemoDoor-80",
           "dokodemoDoor-443"
         ],
-        "outboundTag": "blackhole-out"
+        "outboundTag": "blackhole_out"
       }
     ]
   }
@@ -8379,6 +8408,9 @@ singBoxVersionManageMenu() {
         handleSingBox start
     elif [[ "${selectTuicType}" == "5" ]]; then
         singBoxLog ${logStatus}
+        if [[ "${logStatus}" == "false" ]]; then
+            tail -f "${singBoxConfigPath}../box.log"
+        fi
     elif [[ "${selectTuicType}" == "6" ]]; then
         tail -f "${singBoxConfigPath}../box.log"
     fi
@@ -8418,7 +8450,7 @@ menu() {
 	echoContent red "\n=============================================================="
 	echoContent green "原作者：mack-a"
 	echoContent green "作者：Wizard89"
-	echoContent green "当前版本：v2.8.21"
+	echoContent green "当前版本：v2.8.22"
 	echoContent green "Github：https://github.com/Wizard89/v2ray-agent"
 	echoContent green "描述：八合一共存脚本\c"
 	showInstallStatus
