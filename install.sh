@@ -814,6 +814,7 @@ mkdirTools() {
     mkdir -p /etc/v2ray-agent/v2ray/conf
     mkdir -p /etc/v2ray-agent/v2ray/tmp
     mkdir -p /etc/v2ray-agent/xray/conf
+    mkdir -p /etc/v2ray-agent/xray/reality_scan
     mkdir -p /etc/v2ray-agent/xray/tmp
     mkdir -p /etc/v2ray-agent/hysteria/conf
     mkdir -p /etc/systemd/system/
@@ -8237,6 +8238,7 @@ xrayCoreRealityInstall() {
     # 生成账号
     showAccounts 8
 }
+
 # reality管理
 manageReality() {
 
@@ -8250,6 +8252,7 @@ manageReality() {
     else
         echoContent yellow "1.安装"
     fi
+    echoContent yellow "4.扫描Reality域名"
     echoContent red "=============================================================="
     read -r -p "请选择:" installRealityStatus
 
@@ -8261,9 +8264,51 @@ manageReality() {
     elif [[ "${installRealityStatus}" == "3" ]]; then
         initXrayRealityConfig 1
         updateXrayRealityConfig
+    elif [[ "${installRealityStatus}" == "4" ]]; then
+        installRealityScanner
+        realityScanner
     fi
 }
+# 安装reality scanner
+installRealityScanner() {
+    if [[ ! -f "/etc/v2ray-agent/xray/reality_scan/RealiTLScanner-linux-64" ]]; then
+        version=$(curl -s https://api.github.com/repos/XTLS/RealiTLScanner/releases?per_page=1 | jq -r '.[]|.tag_name')
+        wget -c -q -P /etc/v2ray-agent/xray/ "https://github.com/XTLS/RealiTLScanner/releases/download/${version}/RealiTLScanner-linux-64"
+        chmod 655 /etc/v2ray-agent/xray/reality_scan/RealiTLScanner-linux-64
+    fi
+}
+# reality scanner
+realityScanner() {
+    echoContent skyBlue "\n进度 1/1 : 扫描Reality域名"
+    echoContent red "\n=============================================================="
+    echoContent yellow "# 注意事项"
+    echoContent yellow "扫描完成后，请自行检查扫描网站结果内容是否合规，需个人承担风险\n"
+    echoContent yellow "1.扫描IPv4"
+    echoContent yellow "2.扫描IPv6"
+    echoContent red "=============================================================="
+    read -r -p "请选择:" realityScannerStatus
+    local type=
+    if [[ "${realityScannerStatus}" == "1" ]]; then
+        type=4
+    elif [[ "${realityScannerStatus}" == "2" ]]; then
+        type=6
+    fi
 
+    publicIP=$(getPublicIP "${type}")
+    echoContent yellow "IP:${publicIP}"
+    if [[ -z "${publicIP}" ]]; then
+        echoContent red " ---> 无法获取IP"
+        exit 0
+    fi
+
+    read -r -p "IP是否正确？[y/n]:" ipStatus
+    if [[ "${ipStatus}" == "y" ]]; then
+        echoContent yellow "结果存储在 /etc/v2ray-agent/xray/reality_scan/result.log 文件中\n"
+        /etc/v2ray-agent/xray/reality_scan/RealiTLScanner-linux-64 -addr "${publicIP}" | tee /etc/v2ray-agent/xray/reality_scan/result.log
+    else
+        echoContent red " ---> 无法读取正确IP"
+    fi
+}
 # hysteria管理
 manageHysteria() {
 	echoContent skyBlue "\n进度  1/1 : Hysteria2 管理"
@@ -8443,7 +8488,7 @@ menu() {
 	echoContent red "\n=============================================================="
 	echoContent green "原作者：mack-a"
 	echoContent green "作者：Wizard89"
-	echoContent green "当前版本：v2.8.23"
+	echoContent green "当前版本：v2.8.24"
 	echoContent green "Github：https://github.com/Wizard89/v2ray-agent"
 	echoContent green "描述：八合一共存脚本\c"
 	showInstallStatus
