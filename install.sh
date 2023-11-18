@@ -8282,7 +8282,8 @@ realityScanner() {
     echoContent skyBlue "\n进度 1/1 : 扫描Reality域名"
     echoContent red "\n=============================================================="
     echoContent yellow "# 注意事项"
-    echoContent yellow "扫描完成后，请自行检查扫描网站结果内容是否合规，需个人承担风险\n"
+    echoContent yellow "扫描完成后，请自行检查扫描网站结果内容是否合规，需个人承担风险"
+    echoContent red "某些IDC不允许扫描操作，比如搬瓦工，其中风险请自行承担\n"
     echoContent yellow "1.扫描IPv4"
     echoContent yellow "2.扫描IPv6"
     echoContent red "=============================================================="
@@ -8292,6 +8293,12 @@ realityScanner() {
         type=4
     elif [[ "${realityScannerStatus}" == "2" ]]; then
         type=6
+    fi
+
+    read -r -p "某些IDC不允许扫描操作，比如搬瓦工，其中风险请自行承担，是否继续？[y/n]:" scanStatus
+
+    if [[ "${scanStatus}" != "y" ]]; then
+        exit 0
     fi
 
     publicIP=$(getPublicIP "${type}")
@@ -8488,7 +8495,7 @@ menu() {
 	echoContent red "\n=============================================================="
 	echoContent green "原作者：mack-a"
 	echoContent green "作者：Wizard89"
-	echoContent green "当前版本：v2.8.25"
+	echoContent green "当前版本：v2.8.26"
 	echoContent green "Github：https://github.com/Wizard89/v2ray-agent"
 	echoContent green "描述：八合一共存脚本\c"
 	showInstallStatus
