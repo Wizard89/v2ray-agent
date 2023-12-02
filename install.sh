@@ -3219,6 +3219,18 @@ addSingBoxOutbound() {
     ]
 }
 EOF
+    elif echo "${tag}" | grep -q "direct"; then
+
+        cat <<EOF >"${singBoxConfigPath}config/${tag}.json"
+{
+     "outbounds": [
+        {
+             "type": "direct",
+             "tag": "${tag}"
+        }
+    ]
+}
+EOF
     else
         cat <<EOF >"${singBoxConfigPath}config/${tag}.json"
 {
@@ -6278,6 +6290,7 @@ addWireGuardRoute() {
         # rule
         addSingBoxRouteRule "wireguard_out_${type}" "${domainList}"
         addSingBoxOutbound "wireguard_out_${type}" "wireguard_out"
+        addSingBoxOutbound direct
         # outbound
         addSingBoxWireGuardOut
     fi
@@ -6433,14 +6446,18 @@ EOF
 
             configurationSingBoxRoute delete IPv4
             configurationSingBoxRoute delete IPv6
+
+            removeSingBoxOutbound direct
+
             removeSingBoxOutbound IPv4_out
             removeSingBoxOutbound IPv6_out
 
+            configurationSingBoxRoute delete wireguard_out_IPv4
+            configurationSingBoxRoute delete wireguard_out_IPv6
+
             if [[ "${type}" == "IPv4" ]]; then
-                configurationSingBoxRoute delete wireguard_out_IPv6
                 removeSingBoxOutbound wireguard_out_IPv6
             else
-                configurationSingBoxRoute delete wireguard_out_IPv4
                 removeSingBoxOutbound wireguard_out_IPv4
             fi
 
@@ -8473,7 +8490,7 @@ menu() {
 	echoContent red "\n=============================================================="
 	echoContent green "原作者：mack-a"
 	echoContent green "作者：Wizard89"
-	echoContent green "当前版本：v2.9.7"
+	echoContent green "当前版本：v2.9.8"
 	echoContent green "Github：https://github.com/Wizard89/v2ray-agent"
 	echoContent green "描述：八合一共存脚本\c"
 	showInstallStatus
