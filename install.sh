@@ -1421,7 +1421,7 @@ customSSLEmail() {
 }
 # DNS API申请证书
 switchDNSAPI() {
-    read -r -p "是否使用DNS API申请证书？[y/n]:" dnsAPIStatus
+    read -r -p "是否使用DNS API申请证书[支持NAT]？[y/n]:" dnsAPIStatus
     if [[ "${dnsAPIStatus}" == "y" ]]; then
         echoContent red "\n=============================================================="
         echoContent yellow "1.cloudflare[默认]"
@@ -7561,26 +7561,6 @@ proxy-providers:
       interval: 300
 
 proxy-groups:
-  - name: 节点选择
-    type: select
-    use:
-      - ${subscribeSalt}_provider
-    proxies:
-      - 手动切换
-      - 自动选择
-      - 故障转移
-      - 负载均衡
-      - DIRECT
-  - name: 流媒体
-    type: select
-    use:
-      - ${subscribeSalt}_provider
-    proxies:
-      - 手动切换
-      - 自动选择
-      - 故障转移
-      - 负载均衡
-      - DIRECT
   - name: 手动切换
     type: select
     use:
@@ -7594,23 +7574,7 @@ proxy-groups:
     use:
       - ${subscribeSalt}_provider
     proxies: null
-  - name: 故障转移
-    type: fallback
-    url: http://www.gstatic.com/generate_204
-    interval: 300
-    tolerance: 50
-    use:
-      - ${subscribeSalt}_provider
-    proxies:
-      - 自动选择
-  - name: 负载均衡
-    type: load-balance
-    url: http://www.gstatic.com/generate_204
-    interval: 300
-    tolerance: 50
-    use:
-      - ${subscribeSalt}_provider
-    proxies: null
+
   - name: 全球代理
     type: select
     use:
@@ -7618,13 +7582,21 @@ proxy-groups:
     proxies:
       - 手动切换
       - 自动选择
+
+  - name: 流媒体
+    type: select
+    use:
+      - ${subscribeSalt}_provider
+    proxies:
+      - 手动切换
+      - 自动选择
+      - DIRECT
   - name: DNS_Proxy
     type: select
     use:
       - ${subscribeSalt}_provider
     proxies:
       - 自动选择
-      - 节点选择
       - DIRECT
 
   - name: Telegram
@@ -7634,7 +7606,14 @@ proxy-groups:
     proxies:
       - 手动切换
       - 自动选择
-
+  - name: Google
+    type: select
+    use:
+      - ${subscribeSalt}_provider
+    proxies:
+      - 手动切换
+      - 自动选择
+      - DIRECT
   - name: YouTube
     type: select
     use:
@@ -7648,46 +7627,7 @@ proxy-groups:
       - ${subscribeSalt}_provider
     proxies:
       - 流媒体
-      - 节点选择
       - 自动选择
-  - name: HBO
-    type: select
-    use:
-      - ${subscribeSalt}_provider
-    proxies:
-      - 流媒体
-      - 节点选择
-      - 自动选择
-  - name: Bing
-    type: select
-    use:
-      - ${subscribeSalt}_provider
-    proxies:
-      - 节点选择
-      - 自动选择
-  - name: OpenAI
-    type: select
-    use:
-      - ${subscribeSalt}_provider
-    proxies:
-      - 节点选择
-      - 自动选择
-  - name: Disney
-    type: select
-    use:
-      - ${subscribeSalt}_provider
-    proxies:
-      - 流媒体
-      - 节点选择
-      - 自动选择
-  - name: GitHub
-    type: select
-    use:
-      - ${subscribeSalt}_provider
-    proxies:
-      - 手动切换
-      - 自动选择
-      - DIRECT
   - name: Spotify
     type: select
     use:
@@ -7697,7 +7637,33 @@ proxy-groups:
       - 手动切换
       - 自动选择
       - DIRECT
-  - name: Google
+  - name: HBO
+    type: select
+    use:
+      - ${subscribeSalt}_provider
+    proxies:
+      - 流媒体
+      - 自动选择
+  - name: Bing
+    type: select
+    use:
+      - ${subscribeSalt}_provider
+    proxies:
+      - 自动选择
+  - name: OpenAI
+    type: select
+    use:
+      - ${subscribeSalt}_provider
+    proxies:
+      - 自动选择
+  - name: Disney
+    type: select
+    use:
+      - ${subscribeSalt}_provider
+    proxies:
+      - 流媒体
+      - 自动选择
+  - name: GitHub
     type: select
     use:
       - ${subscribeSalt}_provider
@@ -7705,6 +7671,7 @@ proxy-groups:
       - 手动切换
       - 自动选择
       - DIRECT
+
   - name: 国内媒体
     type: select
     use:
@@ -7717,7 +7684,6 @@ proxy-groups:
       - ${subscribeSalt}_provider
     proxies:
       - DIRECT
-      - 节点选择
       - 自动选择
   - name: 漏网之鱼
     type: select
@@ -7725,7 +7691,6 @@ proxy-groups:
       - ${subscribeSalt}_provider
     proxies:
       - DIRECT
-      - 节点选择
       - 手动切换
       - 自动选择
 rule-providers:
@@ -8490,7 +8455,7 @@ menu() {
 	echoContent red "\n=============================================================="
 	echoContent green "原作者：mack-a"
 	echoContent green "作者：Wizard89"
-	echoContent green "当前版本：v2.9.9"
+	echoContent green "当前版本：v2.9.10"
 	echoContent green "Github：https://github.com/Wizard89/v2ray-agent"
 	echoContent green "描述：八合一共存脚本\c"
 	showInstallStatus
