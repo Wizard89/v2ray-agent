@@ -49,7 +49,6 @@
 ## 核心
 
 - Xray-core
-- v2ray-core[暂停维护]
 - sing-box
 
 ## 协议
@@ -60,6 +59,20 @@
 - Trojan(TCP、gRPC)
 - Hysteria2
 - Tuic
+
+## 功能
+
+- 支持不同核心之间的配置读取
+- 支持个性化安装单个协议
+- [支持无域名版本的VLESS Reality搭建]
+- [支持多种分流用于解锁（wireguard、IPv6、任意门、DNS、VMess(ws)、SNI反向代理）]
+- [支持批量添加CDN节点并配合ClashMeta自动优选]
+- 支持普通证书和通配符证书自动申请及更新
+- [支持订阅以及多VPS组合订阅]
+- 支持批量新增端口[仅支持Xray-core]
+- 支持核心的升级以及回退
+- 支持自主更换伪装站点[仅支持Xray-core]
+- 支持BT下载管理以及域名黑名单管理
 
 ## 线路推荐
 
