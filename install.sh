@@ -3315,8 +3315,7 @@ singBoxTuicInstall() {
     totalProgress=5
     installSingBox 1
     selectCustomInstallType=9
-    #    initSingBoxTuicConfig 2
-    initSingBoxConfig custom 2
+    initSingBoxConfig custom 2 true
     installSingBoxService 3
     reloadCore
     showAccounts 4
@@ -3336,7 +3335,7 @@ singBoxHysteria2Install() {
     totalProgress=5
     installSingBox 1
     selectCustomInstallType=6
-    initSingBoxConfig custom 2
+    initSingBoxConfig custom 2 true
     installSingBoxService 3
     reloadCore
     showAccounts 4
@@ -8093,7 +8092,6 @@ xrayCoreRealityInstall() {
 }
 
 # reality管理
-
 manageReality() {
     readInstallProtocolType
     if ! echo "${currentInstallProtocolType}" | grep -q -E "7|8" || [[ -z "${coreInstallType}" ]]; then
@@ -8181,7 +8179,6 @@ manageHysteria() {
 	echoContent red "=============================================================="
     read -r -p "请选择:" installHysteria2Status
     if [[ "${installHysteria2Status}" == "1" ]]; then
-        unInstallHysteriaCore
         singBoxHysteria2Install
     elif [[ "${installHysteria2Status}" == "2" && "${hysteria2Status}" == "true" ]]; then
         unInstallSingBox hysteria2
@@ -8205,7 +8202,6 @@ manageTuic() {
     echoContent red "=============================================================="
     read -r -p "请选择:" installTuicStatus
     if [[ "${installTuicStatus}" == "1" ]]; then
-        unInstallTuicCore
         singBoxTuicInstall
     elif [[ "${installTuicStatus}" == "2" && "${tuicStatus}" == "true" ]]; then
         unInstallSingBox tuic
@@ -8312,7 +8308,7 @@ menu() {
 	echoContent red "\n=============================================================="
 	echoContent green "原作者：mack-a"
 	echoContent green "作者：Wizard89"
-	echoContent green "当前版本：v2.9.15"
+	echoContent green "当前版本：v2.9.16"
 	echoContent green "Github：https://github.com/Wizard89/v2ray-agent"
 	echoContent green "描述：八合一共存脚本\c"
 	showInstallStatus
