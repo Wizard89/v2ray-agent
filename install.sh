@@ -367,7 +367,7 @@ readInstallType() {
                 if [[ -f "${configPath}07_VLESS_vision_reality_inbounds.json" ]]; then
                     realityStatus=1
                 fi
-                if [[ -f "/etc/v2ray-agent/sing-box/conf/config/06_hysteria2_inbounds.json" || -f "/etc/v2ray-agent/sing-box/conf/config/09_tuic_inbounds.json" ]]; then
+                if [[ -f "/etc/v2ray-agent/sing-box/sing-box" ]] && [[ -f "/etc/v2ray-agent/sing-box/conf/config/06_hysteria2_inbounds.json" || -f "/etc/v2ray-agent/sing-box/conf/config/09_tuic_inbounds.json" ]]; then
                     singBoxConfigPath=/etc/v2ray-agent/sing-box/conf/config/
                 fi
             fi
@@ -1821,7 +1821,7 @@ installCronTLS() {
 }
 # 定时任务更新geo文件
 installCronUpdateGeo() {
-    if [[ -n "${configPath}" ]]; then
+    if [[ "${coreInstallType}" == "1" ]]; then
         if crontab -l | grep -q "UpdateGeo"; then
             echoContent red "\n ---> 已添加自动更新定时任务，请不要重复添加"
             exit 0
@@ -5513,7 +5513,7 @@ ipv6Routing() {
 
         if [[ -n "${singBoxConfigPath}" ]]; then
             echoContent yellow "sing-box："
-            jq -r -c '.route.rules[]|select (.outbound=="IPv6_out")|.geosite' "${singBoxConfigPath}IPv6_out_route.json" | jq -r
+            jq -r -c '.route.rules[]|select (.outbound=="IPv6_out")' "${singBoxConfigPath}IPv6_out_route.json" | jq -r
         fi
 
         exit 0
@@ -5537,7 +5537,7 @@ ipv6Routing() {
             echo "${outbounds}" | jq . >${configPath}10_ipv4_outbounds.json
         fi
 
-        if [[ "${coreInstallType}" == "2" ]]; then
+        if [[ -n "${singBoxConfigPath}" ]]; then
             configurationSingBoxRoute add IPv6_out "${domainList}"
             addSingBoxOutbound IPv6_out
             addSingBoxOutbound IPv4_out
@@ -5570,11 +5570,13 @@ ipv6Routing() {
 EOF
                 rm ${configPath}09_routing.json >/dev/null 2>&1
             fi
-            if [[ "${coreInstallType}" == "2" ]]; then
+            if [[ -n "${singBoxConfigPath}" ]]; then
                 configurationSingBoxRoute delete wireguard_out_IPv4
                 configurationSingBoxRoute delete wireguard_out_IPv6
+
                 removeSingBoxOutbound IPv4_out
                 removeSingBoxOutbound wireguard_out_IPv4
+                removeSingBoxOutbound wireguard_out_IPv6
                 removeSingBoxOutbound wireguard_outbound
 
                 addSingBoxOutbound IPv6_out
@@ -5588,18 +5590,21 @@ EOF
         fi
 
     elif [[ "${ipv6Status}" == "4" ]]; then
+        if [[ "${coreInstallType}" == "1" ]]; then
+            unInstallRouting IPv6_out outboundTag
 
-		unInstallRouting IPv6_out outboundTag
+            unInstallOutbounds IPv6_out
+            if ! grep -q "IPv4_out" <"${configPath}10_ipv4_outbounds.json"; then
+                outbounds=$(jq -r '.outbounds += [{"protocol":"freedom","settings": {"domainStrategy": "UseIPv4"},"tag":"IPv4_out"}]' ${configPath}10_ipv4_outbounds.json)
 
-		unInstallOutbounds IPv6_out
-
-        configurationSingBoxRoute delete IPv6_out
-
-        if ! grep -q "IPv4_out" <"${configPath}10_ipv4_outbounds.json"; then
-            outbounds=$(jq -r '.outbounds += [{"protocol":"freedom","settings": {"domainStrategy": "UseIPv4"},"tag":"IPv4_out"}]' ${configPath}10_ipv4_outbounds.json)
-
-            echo "${outbounds}" | jq . >${configPath}10_ipv4_outbounds.json
+                echo "${outbounds}" | jq . >${configPath}10_ipv4_outbounds.json
+            fi
         fi
+
+        if [[ -n "${singBoxConfigPath}" ]]; then
+            configurationSingBoxRoute delete IPv6_out
+        fi
+
 		echoContent green " ---> IPv6分流卸载成功"
 	else
 		echoContent red " ---> 选择错误"
@@ -6080,7 +6085,7 @@ addWireGuardRoute() {
 # 卸载wireGuard
 unInstallWireGuard() {
     local type=$1
-    if [[ -n "${configPath}" ]]; then
+    if [[ "${coreInstallType}" == "1" ]]; then
 
         if [[ "${type}" == "IPv4" ]]; then
             if ! grep -q "wireguard_out_IPv6" <${configPath}10_ipv4_outbounds.json; then
@@ -6103,9 +6108,7 @@ unInstallWireGuard() {
 # 移除WireGuard分流
 removeWireGuardRoute() {
     local type=$1
-    #    local tag=$2
-    # xray
-    if [[ -n "${configPath}" ]]; then
+    if [[ "${coreInstallType}" == "1" ]]; then
 
         unInstallRouting wireguard_out_"${type}" outboundTag
 
@@ -6138,8 +6141,6 @@ removeWireGuardRoute() {
 }
 EOF
         fi
-
-        echoContent green " ---> WARP分流卸载成功"
     fi
 
     # sing-box
@@ -6257,9 +6258,9 @@ EOF
         fi
 
     elif [[ "${warpStatus}" == "4" ]]; then
-
         removeWireGuardRoute "${type}"
         removeSingBoxOutbound "wireguard_out_${type}"
+        echoContent green " ---> 卸载WARP ${type}分流成功"
     else
         echoContent red " ---> 选择错误"
         exit 0
@@ -6834,7 +6835,7 @@ customSingBoxInstall() {
 
     if [[ "${selectCustomInstallType}" =~ ^[0-9]+$ ]]; then
         #        checkBTPanel
-		totalProgress=17
+		totalProgress=9
 		installTools 1
 		# 申请tls
         if echo "${selectCustomInstallType}" | grep -q -E "0|6|9"; then
@@ -8308,7 +8309,7 @@ menu() {
 	echoContent red "\n=============================================================="
 	echoContent green "原作者：mack-a"
 	echoContent green "作者：Wizard89"
-	echoContent green "当前版本：v2.9.16"
+	echoContent green "当前版本：v2.9.17"
 	echoContent green "Github：https://github.com/Wizard89/v2ray-agent"
 	echoContent green "描述：八合一共存脚本\c"
 	showInstallStatus
