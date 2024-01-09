@@ -4672,10 +4672,15 @@ showAccounts() {
 
             echoContent skyBlue "\n ---> 账号:${email}"
             echo
+            local vmessPort=${currentDefaultPort}
+            if [[ "${coreInstallType}" == "2" ]]; then
+                vmessPort="${singBoxVMessWSPort}"
+            fi
+
             local count=
             while read -r line; do
                 if [[ -n "${line}" ]]; then
-                    defaultBase64Code vmessws "${singBoxVMessWSPort}" "${email}${count}" "$(echo "${user}" | jq -r .id//.uuid)" "${line}" "${path}"
+                    defaultBase64Code vmessws "${vmessPort}" "${email}${count}" "$(echo "${user}" | jq -r .id//.uuid)" "${line}" "${path}"
                     count=$((count + 1))
                 fi
             done < <(echo "${currentAdd}" | tr ',' '\n')
@@ -4767,7 +4772,7 @@ showAccounts() {
 
     fi
     # naive
-    if echo ${currentInstallProtocolType} | grep -q ",10," || [[ -n "${tuicPort}" ]]; then
+    if echo ${currentInstallProtocolType} | grep -q ",10," || [[ -n "${singBoxNaivePort}" ]]; then
         echoContent skyBlue "\n================================  naive TLS [推荐，不支持ClashMeta]  ================================\n"
 
         jq -r -c '.inbounds[]|.users[]' "${configPath}10_naive_inbounds.json" | while read -r user; do
@@ -8468,7 +8473,7 @@ menu() {
 	echoContent red "\n=============================================================="
 	echoContent green "原作者：mack-a"
 	echoContent green "作者：Wizard89"
-	echoContent green "当前版本：v2.9.24"
+	echoContent green "当前版本：v2.9.25"
 	echoContent green "Github：https://github.com/Wizard89/v2ray-agent"
 	echoContent green "描述：八合一共存脚本\c"
 	showInstallStatus
