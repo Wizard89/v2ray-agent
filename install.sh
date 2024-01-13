@@ -2037,7 +2037,7 @@ installXray() {
 
     if [[ "${coreInstallType}" != "1" ]]; then
 
-        version=$(curl -s "https://api.github.com/repos/XTLS/Xray-core/releases?per_page=1" | jq -r ".[].tag_name")
+        version=$(curl -s "https://api.github.com/repos/XTLS/Xray-core/releases?per_page=5" | jq -r ".[]|select (.prerelease==${prereleaseStatus})|.tag_name" | head -1)
 
         echoContent green " ---> Xray-core版本:${version}"
 
@@ -8473,7 +8473,7 @@ menu() {
 	echoContent red "\n=============================================================="
 	echoContent green "原作者：mack-a"
 	echoContent green "作者：Wizard89"
-	echoContent green "当前版本：v2.9.26"
+	echoContent green "当前版本：v2.9.27"
 	echoContent green "Github：https://github.com/Wizard89/v2ray-agent"
 	echoContent green "描述：八合一共存脚本\c"
 	showInstallStatus
