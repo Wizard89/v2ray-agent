@@ -1777,7 +1777,7 @@ nginxBlog() {
         if [[ "${nginxBlogInstallStatus}" == "y" ]]; then
             rm -rf "${nginxStaticPath}"
             randomNum=$((RANDOM % 6 + 1))
-			wget -q -P "${nginxStaticPath}" https://raw.githubusercontent.com/Wizard89/v2ray-agent/master/fodder/blog/unable/html${randomNum}.zip >/dev/null
+            wget -q -P "${nginxStaticPath}" https://raw.githubusercontent.com/Wizard89/v2ray-agent/master/fodder/blog/unable/html${randomNum}.zip >/dev/null
             unzip -o "${nginxStaticPath}html${randomNum}.zip" -d "${nginxStaticPath}" >/dev/null
             rm -f "${nginxStaticPath}html${randomNum}.zip*"
             echoContent green " ---> 添加伪装站点成功"
@@ -1785,7 +1785,7 @@ nginxBlog() {
     else
         randomNum=$((RANDOM % 6 + 1))
         rm -rf "${nginxStaticPath}"
-		wget -q -P "${nginxStaticPath}" https://raw.githubusercontent.com/Wizard89/v2ray-agent/master/fodder/blog/unable/html${randomNum}.zip >/dev/null
+        wget -q -P "${nginxStaticPath}" https://raw.githubusercontent.com/Wizard89/v2ray-agent/master/fodder/blog/unable/html${randomNum}.zip >/dev/null
         unzip -o "${nginxStaticPath}html${randomNum}.zip" -d "${nginxStaticPath}" >/dev/null
         rm -f "${nginxStaticPath}html${randomNum}.zip*"
         echoContent green " ---> 添加伪装站点成功"
@@ -4267,33 +4267,33 @@ EOF
 # 初始化Xray Reality配置
 # 自定义CDN IP
 customCDNIP() {
-	echoContent skyBlue "\n进度 $1/${totalProgress} : 添加cloudflare自选CNAME"
-	echoContent red "\n=============================================================="
-	echoContent yellow "# 注意事项"
-	echoContent yellow "\n教程地址:"
+    echoContent skyBlue "\n进度 $1/${totalProgress} : 添加cloudflare自选CNAME"
+    echoContent red "\n=============================================================="
+    echoContent yellow "# 注意事项"
+    echoContent yellow "\n教程地址:"
 	echoContent skyBlue "https://github.com/Wizard89/v2ray-agent/blob/master/documents/optimize_V2Ray.md"
-	echoContent red "\n如对Cloudflare优化不了解，请不要使用"
-	echoContent yellow "\n 1.CNAME www.digitalocean.com"
-	echoContent yellow " 2.CNAME who.int"
-	echoContent yellow " 3.CNAME blog.hostmonit.com"
+    echoContent red "\n如对Cloudflare优化不了解，请不要使用"
+    echoContent yellow "\n 1.CNAME www.digitalocean.com"
+    echoContent yellow " 2.CNAME who.int"
+    echoContent yellow " 3.CNAME blog.hostmonit.com"
 
-	echoContent skyBlue "----------------------------"
-	read -r -p "请选择[回车不使用]:" selectCloudflareType
-	case ${selectCloudflareType} in
-	1)
-		add="www.digitalocean.com"
-		;;
-	2)
-		add="who.int"
-		;;
-	3)
-		add="blog.hostmonit.com"
-		;;
-	*)
-		add="${domain}"
-		echoContent yellow "\n ---> 不使用"
-		;;
-	esac
+    echoContent skyBlue "----------------------------"
+    read -r -p "请选择[回车不使用]:" selectCloudflareType
+    case ${selectCloudflareType} in
+    1)
+        add="www.digitalocean.com"
+        ;;
+    2)
+        add="who.int"
+        ;;
+    3)
+        add="blog.hostmonit.com"
+        ;;
+    *)
+        add="${domain}"
+        echoContent yellow "\n ---> 不使用"
+        ;;
+    esac
 }
 # 通用
 defaultBase64Code() {
@@ -4332,16 +4332,16 @@ EOF
         echoContent green "    https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=vless%3A%2F%2F${id}%40${currentHost}%3A${port}%3Fencryption%3Dnone%26fp%3Dchrome%26security%3Dtls%26type%3Dtcp%26${currentHost}%3D${currentHost}%26headerType%3Dnone%26sni%3D${currentHost}%26flow%3Dxtls-rprx-vision%23${email}\n"
 
     elif [[ "${type}" == "vmessws" ]]; then
-		qrCodeBase64Default=$(echo -n "{\"port\":${port},\"ps\":\"${email}\",\"tls\":\"tls\",\"id\":\"${id}\",\"aid\":0,\"v\":2,\"host\":\"${currentHost}\",\"type\":\"none\",\"path\":\"${path}\",\"net\":\"ws\",\"add\":\"${add}\",\"allowInsecure\":0,\"method\":\"none\",\"peer\":\"${currentHost}\",\"sni\":\"${currentHost}\"}" | base64 -w 0)
-		qrCodeBase64Default="${qrCodeBase64Default// /}"
+        qrCodeBase64Default=$(echo -n "{\"port\":${port},\"ps\":\"${email}\",\"tls\":\"tls\",\"id\":\"${id}\",\"aid\":0,\"v\":2,\"host\":\"${currentHost}\",\"type\":\"none\",\"path\":\"${path}\",\"net\":\"ws\",\"add\":\"${add}\",\"allowInsecure\":0,\"method\":\"none\",\"peer\":\"${currentHost}\",\"sni\":\"${currentHost}\"}" | base64 -w 0)
+        qrCodeBase64Default="${qrCodeBase64Default// /}"
 
-		echoContent yellow " ---> 通用json(VMess+WS+TLS)"
-		echoContent green "    {\"port\":${port},\"ps\":\"${email}\",\"tls\":\"tls\",\"id\":\"${id}\",\"aid\":0,\"v\":2,\"host\":\"${currentHost}\",\"type\":\"none\",\"path\":\"${path}\",\"net\":\"ws\",\"add\":\"${add}\",\"allowInsecure\":0,\"method\":\"none\",\"peer\":\"${currentHost}\",\"sni\":\"${currentHost}\"}\n"
-		echoContent yellow " ---> 通用vmess(VMess+WS+TLS)链接"
-		echoContent green "    vmess://${qrCodeBase64Default}\n"
-		echoContent yellow " ---> 二维码 vmess(VMess+WS+TLS)"
+        echoContent yellow " ---> 通用json(VMess+WS+TLS)"
+        echoContent green "    {\"port\":${port},\"ps\":\"${email}\",\"tls\":\"tls\",\"id\":\"${id}\",\"aid\":0,\"v\":2,\"host\":\"${currentHost}\",\"type\":\"none\",\"path\":\"${path}\",\"net\":\"ws\",\"add\":\"${add}\",\"allowInsecure\":0,\"method\":\"none\",\"peer\":\"${currentHost}\",\"sni\":\"${currentHost}\"}\n"
+        echoContent yellow " ---> 通用vmess(VMess+WS+TLS)链接"
+        echoContent green "    vmess://${qrCodeBase64Default}\n"
+        echoContent yellow " ---> 二维码 vmess(VMess+WS+TLS)"
 
-		cat <<EOF >>"/etc/v2ray-agent/subscribe_local/default/${user}"
+        cat <<EOF >>"/etc/v2ray-agent/subscribe_local/default/${user}"
 vmess://${qrCodeBase64Default}
 EOF
         cat <<EOF >>"/etc/v2ray-agent/subscribe_local/clashMeta/${user}"
@@ -4362,17 +4362,17 @@ EOF
       headers:
         Host: ${currentHost}
 EOF
-		echoContent green "    https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=vmess://${qrCodeBase64Default}\n"
+        echoContent green "    https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=vmess://${qrCodeBase64Default}\n"
 
-	elif [[ "${type}" == "vlessws" ]]; then
+    elif [[ "${type}" == "vlessws" ]]; then
 
-		echoContent yellow " ---> 通用格式(VLESS+WS+TLS)"
+        echoContent yellow " ---> 通用格式(VLESS+WS+TLS)"
         echoContent green "    vless://${id}@${add}:${port}?encryption=none&security=tls&type=ws&host=${currentHost}&sni=${currentHost}&fp=chrome&path=/${currentPath}ws#${email}\n"
 
-		echoContent yellow " ---> 格式化明文(VLESS+WS+TLS)"
+        echoContent yellow " ---> 格式化明文(VLESS+WS+TLS)"
         echoContent green "    协议类型:VLESS，地址:${add}，伪装域名/SNI:${currentHost}，端口:${port}，client-fingerprint: chrome,用户ID:${id}，安全:tls，传输方式:ws，路径:/${currentPath}ws，账户名:${email}\n"
 
-		cat <<EOF >>"/etc/v2ray-agent/subscribe_local/default/${user}"
+        cat <<EOF >>"/etc/v2ray-agent/subscribe_local/default/${user}"
 vless://${id}@${add}:${port}?encryption=none&security=tls&type=ws&host=${currentHost}&sni=${currentHost}&fp=chrome&path=/${currentPath}ws#${email}
 EOF
         cat <<EOF >>"/etc/v2ray-agent/subscribe_local/clashMeta/${user}"
@@ -4391,18 +4391,19 @@ EOF
       headers:
         Host: ${currentHost}
 EOF
-		echoContent yellow " ---> 二维码 VLESS(VLESS+WS+TLS)"
+
+        echoContent yellow " ---> 二维码 VLESS(VLESS+WS+TLS)"
         echoContent green "    https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=vless%3A%2F%2F${id}%40${add}%3A${port}%3Fencryption%3Dnone%26security%3Dtls%26type%3Dws%26host%3D${currentHost}%26fp%3Dchrome%26sni%3D${currentHost}%26path%3D%252f${currentPath}ws%23${email}"
 
-	elif [[ "${type}" == "vlessgrpc" ]]; then
+    elif [[ "${type}" == "vlessgrpc" ]]; then
 
-		echoContent yellow " ---> 通用格式(VLESS+gRPC+TLS)"
+        echoContent yellow " ---> 通用格式(VLESS+gRPC+TLS)"
         echoContent green "    vless://${id}@${add}:${port}?encryption=none&security=tls&type=grpc&host=${currentHost}&path=${currentPath}grpc&fp=chrome&serviceName=${currentPath}grpc&alpn=h2&sni=${currentHost}#${email}\n"
 
-		echoContent yellow " ---> 格式化明文(VLESS+gRPC+TLS)"
+        echoContent yellow " ---> 格式化明文(VLESS+gRPC+TLS)"
         echoContent green "    协议类型:VLESS，地址:${add}，伪装域名/SNI:${currentHost}，端口:${port}，用户ID:${id}，安全:tls，传输方式:gRPC，alpn:h2，client-fingerprint: chrome,serviceName:${currentPath}grpc，账户名:${email}\n"
 
-		cat <<EOF >>"/etc/v2ray-agent/subscribe_local/default/${user}"
+        cat <<EOF >>"/etc/v2ray-agent/subscribe_local/default/${user}"
 vless://${id}@${add}:${port}?encryption=none&security=tls&type=grpc&host=${currentHost}&path=${currentPath}grpc&serviceName=${currentPath}grpc&fp=chrome&alpn=h2&sni=${currentHost}#${email}
 EOF
         cat <<EOF >>"/etc/v2ray-agent/subscribe_local/clashMeta/${user}"
@@ -4419,15 +4420,15 @@ EOF
     grpc-opts:
       grpc-service-name: ${currentPath}grpc
 EOF
-		echoContent yellow " ---> 二维码 VLESS(VLESS+gRPC+TLS)"
+        echoContent yellow " ---> 二维码 VLESS(VLESS+gRPC+TLS)"
         echoContent green "    https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=vless%3A%2F%2F${id}%40${add}%3A${port}%3Fencryption%3Dnone%26security%3Dtls%26type%3Dgrpc%26host%3D${currentHost}%26serviceName%3D${currentPath}grpc%26fp%3Dchrome%26path%3D${currentPath}grpc%26sni%3D${currentHost}%26alpn%3Dh2%23${email}"
 
-	elif [[ "${type}" == "trojan" ]]; then
-		# URLEncode
-		echoContent yellow " ---> Trojan(TLS)"
+    elif [[ "${type}" == "trojan" ]]; then
+        # URLEncode
+        echoContent yellow " ---> Trojan(TLS)"
         echoContent green "    trojan://${id}@${currentHost}:${port}?peer=${currentHost}&fp=chrome&sni=${currentHost}&alpn=http/1.1#${currentHost}_Trojan\n"
 
-		cat <<EOF >>"/etc/v2ray-agent/subscribe_local/default/${user}"
+        cat <<EOF >>"/etc/v2ray-agent/subscribe_local/default/${user}"
 trojan://${id}@${currentHost}:${port}?peer=${currentHost}&fp=chrome&sni=${currentHost}&alpn=http/1.1#${email}_Trojan
 EOF
 
@@ -4441,15 +4442,15 @@ EOF
     udp: true
     sni: ${currentHost}
 EOF
-		echoContent yellow " ---> 二维码 Trojan(TLS)"
+        echoContent yellow " ---> 二维码 Trojan(TLS)"
         echoContent green "    https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=trojan%3a%2f%2f${id}%40${currentHost}%3a${port}%3fpeer%3d${currentHost}%26fp%3Dchrome%26sni%3d${currentHost}%26alpn%3Dhttp/1.1%23${email}\n"
 
-	elif [[ "${type}" == "trojangrpc" ]]; then
-		# URLEncode
+    elif [[ "${type}" == "trojangrpc" ]]; then
+        # URLEncode
 
-		echoContent yellow " ---> Trojan gRPC(TLS)"
-		echoContent green "    trojan://${id}@${add}:${port}?encryption=none&peer=${currentHost}&fp=chrome&security=tls&type=grpc&sni=${currentHost}&alpn=h2&path=${currentPath}trojangrpc&serviceName=${currentPath}trojangrpc#${email}\n"
-		cat <<EOF >>"/etc/v2ray-agent/subscribe_local/default/${user}"
+        echoContent yellow " ---> Trojan gRPC(TLS)"
+        echoContent green "    trojan://${id}@${add}:${port}?encryption=none&peer=${currentHost}&fp=chrome&security=tls&type=grpc&sni=${currentHost}&alpn=h2&path=${currentPath}trojangrpc&serviceName=${currentPath}trojangrpc#${email}\n"
+        cat <<EOF >>"/etc/v2ray-agent/subscribe_local/default/${user}"
 trojan://${id}@${add}:${port}?encryption=none&peer=${currentHost}&security=tls&type=grpc&fp=chrome&sni=${currentHost}&alpn=h2&path=${currentPath}trojangrpc&serviceName=${currentPath}trojangrpc#${email}
 EOF
         cat <<EOF >>"/etc/v2ray-agent/subscribe_local/clashMeta/${user}"
@@ -4464,11 +4465,11 @@ EOF
     grpc-opts:
       grpc-service-name: ${currentPath}trojangrpc
 EOF
-		echoContent yellow " ---> 二维码 Trojan gRPC(TLS)"
+        echoContent yellow " ---> 二维码 Trojan gRPC(TLS)"
         echoContent green "    https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=trojan%3a%2f%2f${id}%40${add}%3a${port}%3Fencryption%3Dnone%26fp%3Dchrome%26security%3Dtls%26peer%3d${currentHost}%26type%3Dgrpc%26sni%3d${currentHost}%26path%3D${currentPath}trojangrpc%26alpn%3Dh2%26serviceName%3D${currentPath}trojangrpc%23${email}\n"
 
-	elif [[ "${type}" == "hysteria" ]]; then
-		echoContent yellow " ---> Hysteria(TLS)"
+    elif [[ "${type}" == "hysteria" ]]; then
+        echoContent yellow " ---> Hysteria(TLS)"
 
         echoContent green "    hysteria2://${id}@${currentHost}:${port}?peer=${currentHost}&insecure=0&sni=${currentHost}&alpn=h3#${email}\n"
         cat <<EOF >>"/etc/v2ray-agent/subscribe_local/default/${user}"
@@ -4489,7 +4490,7 @@ EOF
     up: "${hysteria2ClientUploadSpeed} Mbps"
     down: "${hysteria2ClientDownloadSpeed} Mbps"
 EOF
-		echoContent yellow " ---> 二维码 Hysteria2(TLS)"
+        echoContent yellow " ---> 二维码 Hysteria2(TLS)"
         echoContent green "    https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=hysteria2%3A%2F%2F${id}%40${currentHost}%3A${port}%3Fpeer%3D${currentHost}%26insecure%3D0%26sni%3D${currentHost}%26alpn%3Dh3%23${email}\n"
 
     elif [[ "${type}" == "vlessReality" ]]; then
@@ -4503,7 +4504,7 @@ EOF
         echoContent green "    vless://${id}@$(getPublicIP):${port}?encryption=none&security=reality&type=tcp&sni=${realityServerName}&fp=chrome&pbk=${publicKey}&sid=6ba85179e30d4fc2&flow=xtls-rprx-vision#${email}\n"
 
         echoContent yellow " ---> 格式化明文(VLESS+reality+uTLS+Vision)"
-        echoContent green "协议类型:VLESS reality，地址:$(getPublicIP)，publicKey:${publicKey}，shortId: 6ba85179e30d4fc2，serverNames：${realityServerName}，端口:${port}，用户ID:${id}，传输方式:tcp，账户名:${email}\n"
+        echoContent green "协议类型:VLESS reality，地址:$(getPublicIP)，publicKey:${publicKey}，shortId: 6ba85179e30d4fc2,serverNames：${realityServerName}，端口:${port}，用户ID:${id}，传输方式:tcp，账户名:${email}\n"
         cat <<EOF >>"/etc/v2ray-agent/subscribe_local/default/${user}"
 vless://${id}@$(getPublicIP):${port}?encryption=none&security=reality&type=tcp&sni=${realityServerName}&fp=chrome&pbk=${publicKey}&sid=6ba85179e30d4fc2&flow=xtls-rprx-vision#${email}
 EOF
@@ -4607,22 +4608,22 @@ naive+https://${email}:${id}@${currentHost}:${port}?padding=true#${email}
 EOF
         echoContent yellow " ---> 二维码 Naive(TLS)"
         echoContent green "    https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=naive%2Bhttps%3A%2F%2F${email}%3A${id}%40${currentHost}%3A${port}%3Fpadding%3Dtrue%23${email}\n"
-	fi
+    fi
 
 }
 
 # 账号
 showAccounts() {
-	readInstallType
-	readInstallProtocolType
-	readConfigHostPathUUID
+    readInstallType
+    readInstallProtocolType
+    readConfigHostPathUUID
     readXrayCoreRealityConfig
     readSingBoxConfig
 
     echo
-	echoContent skyBlue "\n进度 $1/${totalProgress} : 账号"
+    echoContent skyBlue "\n进度 $1/${totalProgress} : 账号"
 
-	# VLESS TCP
+    # VLESS TCP
     if echo ${currentInstallProtocolType} | grep -q ",0,"; then
 
         echoContent skyBlue "============================= VLESS TCP TLS_Vision [推荐] ==============================\n"
@@ -4636,17 +4637,17 @@ showAccounts() {
         done
     fi
 
-	# VLESS WS
-	if echo ${currentInstallProtocolType} | grep -q ",1,"; then
+    # VLESS WS
+    if echo ${currentInstallProtocolType} | grep -q ",1,"; then
         echoContent skyBlue "\n================================ VLESS WS TLS [仅CDN推荐] ================================\n"
 
-		jq .inbounds[0].settings.clients ${configPath}03_VLESS_WS_inbounds.json | jq -c '.[]' | while read -r user; do
-			local email=
-			email=$(echo "${user}" | jq -r .email)
+        jq .inbounds[0].settings.clients ${configPath}03_VLESS_WS_inbounds.json | jq -c '.[]' | while read -r user; do
+            local email=
+            email=$(echo "${user}" | jq -r .email)
 
-			echoContent skyBlue "\n ---> 账号:${email}"
-			echo
-			local path="${currentPath}ws"
+            echoContent skyBlue "\n ---> 账号:${email}"
+            echo
+            local path="${currentPath}ws"
             local count=
             while read -r line; do
                 if [[ -n "${line}" ]]; then
@@ -4655,8 +4656,8 @@ showAccounts() {
                 fi
             done < <(echo "${currentAdd}" | tr ',' '\n')
 
-		done
-	fi
+        done
+    fi
 
     # VLESS grpc
     if echo ${currentInstallProtocolType} | grep -q ",5,"; then
@@ -4709,27 +4710,27 @@ showAccounts() {
         done
     fi
 
-	# trojan tcp
-	if echo ${currentInstallProtocolType} | grep -q ",4,"; then
+    # trojan tcp
+    if echo ${currentInstallProtocolType} | grep -q ",4,"; then
         echoContent skyBlue "\n==================================  Trojan TLS [不推荐] ==================================\n"
-		jq .inbounds[0].settings.clients ${configPath}04_trojan_TCP_inbounds.json | jq -c '.[]' | while read -r user; do
-			local email=
-			email=$(echo "${user}" | jq -r .email)
-			echoContent skyBlue "\n ---> 账号:${email}"
+        jq .inbounds[0].settings.clients ${configPath}04_trojan_TCP_inbounds.json | jq -c '.[]' | while read -r user; do
+            local email=
+            email=$(echo "${user}" | jq -r .email)
+            echoContent skyBlue "\n ---> 账号:${email}"
 
-			defaultBase64Code trojan "${currentDefaultPort}" "${email}" "$(echo "${user}" | jq -r .password)"
-		done
-	fi
+            defaultBase64Code trojan "${currentDefaultPort}" "${email}" "$(echo "${user}" | jq -r .password)"
+        done
+    fi
 
     # trojan grpc
-	if echo ${currentInstallProtocolType} | grep -q ",2,"; then
+    if echo ${currentInstallProtocolType} | grep -q ",2,"; then
         echoContent skyBlue "\n================================  Trojan gRPC TLS [仅CDN推荐]  ================================\n"
-		jq .inbounds[0].settings.clients ${configPath}04_trojan_gRPC_inbounds.json | jq -c '.[]' | while read -r user; do
-			local email=
-			email=$(echo "${user}" | jq -r .email)
+        jq .inbounds[0].settings.clients ${configPath}04_trojan_gRPC_inbounds.json | jq -c '.[]' | while read -r user; do
+            local email=
+            email=$(echo "${user}" | jq -r .email)
 
-			echoContent skyBlue "\n ---> 账号:${email}"
-			echo
+            echoContent skyBlue "\n ---> 账号:${email}"
+            echo
             local count=
             while read -r line; do
                 if [[ -n "${line}" ]]; then
@@ -4738,8 +4739,8 @@ showAccounts() {
                 fi
             done < <(echo "${currentAdd}" | tr ',' '\n')
 
-		done
-	fi
+        done
+    fi
     # hysteria2
     if echo ${currentInstallProtocolType} | grep -q ",6," || [[ -n "${hysteriaPort}" ]]; then
         echoContent skyBlue "\n================================  Hysteria2 TLS [推荐] ================================\n"
@@ -4751,9 +4752,9 @@ showAccounts() {
             echoContent skyBlue "\n ---> 账号:$(echo "${user}" | jq -r .name)"
             echo
             defaultBase64Code hysteria "${singBoxHysteria2Port}" "$(echo "${user}" | jq -r .name)" "$(echo "${user}" | jq -r .password)"
-		done
+        done
 
-	fi
+    fi
 
     # VLESS reality vision
     if echo ${currentInstallProtocolType} | grep -q ",7,"; then
@@ -4807,66 +4808,66 @@ showAccounts() {
 }
 # 移除nginx302配置
 removeNginx302() {
-	local count=
-	grep -n "return 302" <"${nginxConfigPath}alone.conf" | while read -r line; do
+    local count=
+    grep -n "return 302" <"${nginxConfigPath}alone.conf" | while read -r line; do
 
-		if ! echo "${line}" | grep -q "request_uri"; then
-			local removeIndex=
-			removeIndex=$(echo "${line}" | awk -F "[:]" '{print $1}')
-			removeIndex=$((removeIndex + count))
-			sed -i "${removeIndex}d" ${nginxConfigPath}alone.conf
-			count=$((count - 1))
-		fi
-	done
+        if ! echo "${line}" | grep -q "request_uri"; then
+            local removeIndex=
+            removeIndex=$(echo "${line}" | awk -F "[:]" '{print $1}')
+            removeIndex=$((removeIndex + count))
+            sed -i "${removeIndex}d" ${nginxConfigPath}alone.conf
+            count=$((count - 1))
+        fi
+    done
 }
 
 # 检查302是否成功
 checkNginx302() {
-	local domain302Status=
-	domain302Status=$(curl -s "https://${currentHost}:${currentPort}")
-	if echo "${domain302Status}" | grep -q "302"; then
-		local domain302Result=
-		domain302Result=$(curl -L -s "https://${currentHost}:${currentPort}")
-		if [[ -n "${domain302Result}" ]]; then
-			echoContent green " ---> 302重定向设置成功"
-			exit 0
-		fi
-	fi
-	echoContent red " ---> 302重定向设置失败，请仔细检查是否和示例相同"
-	backupNginxConfig restoreBackup
+    local domain302Status=
+    domain302Status=$(curl -s "https://${currentHost}:${currentPort}")
+    if echo "${domain302Status}" | grep -q "302"; then
+        local domain302Result=
+        domain302Result=$(curl -L -s "https://${currentHost}:${currentPort}")
+        if [[ -n "${domain302Result}" ]]; then
+            echoContent green " ---> 302重定向设置成功"
+            exit 0
+        fi
+    fi
+    echoContent red " ---> 302重定向设置失败，请仔细检查是否和示例相同"
+    backupNginxConfig restoreBackup
 }
 
 # 备份恢复nginx文件
 backupNginxConfig() {
-	if [[ "$1" == "backup" ]]; then
-		cp ${nginxConfigPath}alone.conf /etc/v2ray-agent/alone_backup.conf
-		echoContent green " ---> nginx配置文件备份成功"
-	fi
+    if [[ "$1" == "backup" ]]; then
+        cp ${nginxConfigPath}alone.conf /etc/v2ray-agent/alone_backup.conf
+        echoContent green " ---> nginx配置文件备份成功"
+    fi
 
-	if [[ "$1" == "restoreBackup" ]] && [[ -f "/etc/v2ray-agent/alone_backup.conf" ]]; then
-		cp /etc/v2ray-agent/alone_backup.conf ${nginxConfigPath}alone.conf
-		echoContent green " ---> nginx配置文件恢复备份成功"
-		rm /etc/v2ray-agent/alone_backup.conf
-	fi
+    if [[ "$1" == "restoreBackup" ]] && [[ -f "/etc/v2ray-agent/alone_backup.conf" ]]; then
+        cp /etc/v2ray-agent/alone_backup.conf ${nginxConfigPath}alone.conf
+        echoContent green " ---> nginx配置文件恢复备份成功"
+        rm /etc/v2ray-agent/alone_backup.conf
+    fi
 
 }
 # 添加302配置
 addNginx302() {
 
-	local count=1
-	grep -n "location / {" <"${nginxConfigPath}alone.conf" | while read -r line; do
-		if [[ -n "${line}" ]]; then
-			local insertIndex=
-			insertIndex="$(echo "${line}" | awk -F "[:]" '{print $1}')"
-			insertIndex=$((insertIndex + count))
-			sed "${insertIndex}i return 302 '$1';" ${nginxConfigPath}alone.conf >${nginxConfigPath}tmpfile && mv ${nginxConfigPath}tmpfile ${nginxConfigPath}alone.conf
-			count=$((count + 1))
-		else
-			echoContent red " ---> 302添加失败"
-			backupNginxConfig restoreBackup
-		fi
+    local count=1
+    grep -n "location / {" <"${nginxConfigPath}alone.conf" | while read -r line; do
+        if [[ -n "${line}" ]]; then
+            local insertIndex=
+            insertIndex="$(echo "${line}" | awk -F "[:]" '{print $1}')"
+            insertIndex=$((insertIndex + count))
+            sed "${insertIndex}i return 302 '$1';" ${nginxConfigPath}alone.conf >${nginxConfigPath}tmpfile && mv ${nginxConfigPath}tmpfile ${nginxConfigPath}alone.conf
+            count=$((count + 1))
+        else
+            echoContent red " ---> 302添加失败"
+            backupNginxConfig restoreBackup
+        fi
 
-	done
+    done
 }
 
 # 更新伪装站
@@ -8836,7 +8837,7 @@ menu() {
 	echoContent red "\n=============================================================="
 	echoContent green "原作者：mack-a"
 	echoContent green "作者：Wizard89"
-	echoContent green "当前版本：v2.9.32"
+	echoContent green "当前版本：v2.9.33"
 	echoContent green "Github：https://github.com/Wizard89/v2ray-agent"
 	echoContent green "描述：八合一共存脚本\c"
 	showInstallStatus
