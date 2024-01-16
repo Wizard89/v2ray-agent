@@ -4274,9 +4274,8 @@ customCDNIP() {
 	echoContent skyBlue "https://github.com/Wizard89/v2ray-agent/blob/master/documents/optimize_V2Ray.md"
 	echoContent red "\n如对Cloudflare优化不了解，请不要使用"
 	echoContent yellow "\n 1.CNAME www.digitalocean.com"
-	echoContent yellow " 2.CNAME www.cloudflare.com"
-	echoContent yellow " 3.CNAME who.int"
-	echoContent yellow " 4.CNAME blog.hostmonit.com"
+	echoContent yellow " 2.CNAME who.int"
+	echoContent yellow " 3.CNAME blog.hostmonit.com"
 
 	echoContent skyBlue "----------------------------"
 	read -r -p "请选择[回车不使用]:" selectCloudflareType
@@ -4285,12 +4284,9 @@ customCDNIP() {
 		add="www.digitalocean.com"
 		;;
 	2)
-		add="www.cloudflare.com"
-		;;
-	3)
 		add="who.int"
 		;;
-	4)
+	3)
 		add="blog.hostmonit.com"
 		;;
 	*)
@@ -5127,11 +5123,10 @@ updateV2RayCDN() {
 	if [[ -n "${currentAdd}" ]]; then
 		echoContent red "=============================================================="
 		echoContent yellow "1.CNAME www.digitalocean.com"
-		echoContent yellow "2.CNAME www.cloudflare.com"
-		echoContent yellow "3.CNAME who.int"
-		echoContent yellow "4.CNAME blog.hostmonit.com"
-		echoContent yellow "5.手动输入[可输入多个，比如: 1.1.1.1,1.1.1.2,cloudflare.com 逗号分隔]"
-		echoContent yellow "6.移除CDN节点"
+		echoContent yellow "2.CNAME who.int"
+		echoContent yellow "3.CNAME blog.hostmonit.com"
+		echoContent yellow "4.手动输入[可输入多个，比如: 1.1.1.1,1.1.1.2,cloudflare.com 逗号分隔]"
+		echoContent yellow "5.移除CDN节点"
 		echoContent red "=============================================================="
 		read -r -p "请选择:" selectCDNType
 		case ${selectCDNType} in
@@ -5139,18 +5134,15 @@ updateV2RayCDN() {
 			setDomain="www.digitalocean.com"
 			;;
 		2)
-			setDomain="www.cloudflare.com"
-			;;
-		3)
 			setDomain="who.int"
 			;;
-		4)
+		3)
 			setDomain="blog.hostmonit.com"
 			;;
-		5)
+		4)
 			read -r -p "请输入想要自定义CDN IP或者域名:" setDomain
 			;;
-        6)
+        5)
             setDomain=${currentHost}
             ;;
 		esac
@@ -8844,7 +8836,7 @@ menu() {
 	echoContent red "\n=============================================================="
 	echoContent green "原作者：mack-a"
 	echoContent green "作者：Wizard89"
-	echoContent green "当前版本：v2.9.31"
+	echoContent green "当前版本：v2.9.32"
 	echoContent green "Github：https://github.com/Wizard89/v2ray-agent"
 	echoContent green "描述：八合一共存脚本\c"
 	showInstallStatus
