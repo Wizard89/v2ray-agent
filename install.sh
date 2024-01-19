@@ -6650,6 +6650,7 @@ socks5OutboundRoutingMenu() {
         ;;
     3)
         showSingBoxRoutingRules socks5_outbound_route
+        showXrayRoutingRules socks5_outbound
         socks5OutboundRoutingMenu
         ;;
     4)
@@ -6709,13 +6710,16 @@ showSingBoxRoutingRules() {
     if [[ -n "${singBoxConfigPath}" ]]; then
         if [[ -f "${singBoxConfigPath}$1.json" ]]; then
             jq .route.rules "${singBoxConfigPath}$1.json"
-        else
-            echoContent red " ---> 未安装相应功能"
         fi
-    else
-        echoContent red " ---> 未安装相应功能"
-    fi
+}
 
+# xray内核分流规则
+showXrayRoutingRules() {
+    if [[ "${coreInstallType}" == "1" ]]; then
+        if [[ -f "${configPath}09_routing.json" ]]; then
+            jq ".routing.rules[]|select(.outboundTag==\"$1\")" "${configPath}09_routing.json"
+        fi
+    fi
 }
 # 卸载Socks5分流
 removeSocks5Routing() {
@@ -6727,8 +6731,8 @@ removeSocks5Routing() {
     echoContent yellow "3.卸载全部"
     read -r -p "请选择:" unInstallSocks5RoutingStatus
     if [[ "${unInstallSocks5RoutingStatus}" == "1" ]]; then
-        unInstallOutbounds socks5_outbound_route
-        unInstallRouting socks5_outbound_route outboundTag
+        unInstallOutbounds socks5_outbound
+        unInstallRouting socks5_outbound outboundTag
 
         removeSingBoxConfig socks5_outbound_route
         removeSingBoxConfig socks5_inbound_route
@@ -6741,9 +6745,8 @@ removeSocks5Routing() {
         removeSingBoxConfig 20_socks5_inbounds
         removeSingBoxConfig socks5_inbound_route
 
-        unInstallOutbounds socks5_outbound_route
-        unInstallRouting socks5_outbound_route outboundTag
-
+        unInstallOutbounds socks5_outbound
+        unInstallRouting socks5_outbound outboundTag
     else
         echoContent red " ---> 选择错误"
         exit 0
@@ -8880,6 +8883,7 @@ singBoxVersionManageMenu() {
     fi
     if [[ "${selectSingBoxType}" == "1" ]]; then
         installSingBox 1
+        handleSingBox stop
         handleSingBox start
     elif [[ "${selectSingBoxType}" == "2" ]]; then
         handleSingBox stop
@@ -8904,7 +8908,7 @@ menu() {
 	echoContent red "\n=============================================================="
 	echoContent green "原作者：mack-a"
 	echoContent green "作者：Wizard89"
-	echoContent green "当前版本：v2.9.35"
+	echoContent green "当前版本：v2.9.36"
 	echoContent green "Github：https://github.com/Wizard89/v2ray-agent"
 	echoContent green "描述：八合一共存脚本\c"
     showInstallStatus
