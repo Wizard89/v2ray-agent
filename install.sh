@@ -6713,6 +6713,7 @@ showSingBoxRoutingRules() {
         if [[ -f "${singBoxConfigPath}$1.json" ]]; then
             jq .route.rules "${singBoxConfigPath}$1.json"
         fi
+    fi
 }
 
 # xray内核分流规则
@@ -6723,6 +6724,7 @@ showXrayRoutingRules() {
         fi
     fi
 }
+
 # 卸载Socks5分流
 removeSocks5Routing() {
     echoContent skyBlue "\n功能 1/1 : 卸载Socks5分流"
@@ -8917,7 +8919,7 @@ menu() {
 	echoContent red "\n=============================================================="
 	echoContent green "原作者：mack-a"
 	echoContent green "作者：Wizard89"
-	echoContent green "当前版本：v2.9.38"
+	echoContent green "当前版本：v2.9.39"
 	echoContent green "Github：https://github.com/Wizard89/v2ray-agent"
 	echoContent green "描述：八合一共存脚本\c"
     showInstallStatus
