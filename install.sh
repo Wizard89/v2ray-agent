@@ -6693,18 +6693,6 @@ setSocks5OutboundRoutingAll() {
 
     if [[ "${socksOutStatus}" == "y" ]]; then
         if [[ "${coreInstallType}" == "1" ]]; then
-            cat <<EOF >${configPath}10_ipv4_outbounds.json
-{
-    "outbounds":[
-        {
-            "protocol":"freedom",
-            "settings":{
-            },
-            "tag":"socks5_outbound"
-        }
-    ]
-}
-EOF
             rm ${configPath}09_routing.json >/dev/null 2>&1
         fi
         if [[ -n "${singBoxConfigPath}" ]]; then
@@ -6988,6 +6976,15 @@ setSocks5OutboundRouting() {
                 fi
             fi
         done < <(echo "${socks5RoutingOutboundDomain}" | tr ',' '\n')
+        if [[ ! -f "${configPath}09_routing.json" ]]; then
+            cat <<EOF >${configPath}09_routing.json
+{
+    "routing":{
+        "rules": []
+  }
+}
+EOF
+        fi
         routing=$(jq -r ".routing.rules += [{\"type\": \"field\",\"domain\": ${domainRules},\"outboundTag\": \"socks5_outbound\"}]" ${configPath}09_routing.json)
         echo "${routing}" | jq . >${configPath}09_routing.json
     fi
@@ -8937,7 +8934,7 @@ menu() {
 	echoContent red "\n=============================================================="
 	echoContent green "原作者：mack-a"
 	echoContent green "作者：Wizard89"
-	echoContent green "当前版本：v3.0.1"
+	echoContent green "当前版本：v3.0.2"
 	echoContent green "Github：https://github.com/Wizard89/v2ray-agent"
 	echoContent green "描述：八合一共存脚本\c"
     showInstallStatus
