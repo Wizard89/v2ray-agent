@@ -5838,7 +5838,7 @@ ipv6Routing() {
 
         if [[ -n "${singBoxConfigPath}" ]]; then
             addSingBoxRouteRule "IPv6_out" "${domainList}" "IPv6_route"
-
+            addSingBoxOutbound direct
             addSingBoxOutbound IPv6_out
             addSingBoxOutbound IPv4_out
         fi
@@ -6412,7 +6412,7 @@ routingToolsMenu() {
     echoContent yellow "4.Socks5分流"
     echoContent yellow "5.DNS分流"
     #    echoContent yellow "6.VMess+WS+TLS分流"
-    #    echoContent yellow "7.SNI反向代理分流"
+    echoContent yellow "7.SNI反向代理分流"
 
     read -r -p "请选择:" selectType
 
@@ -6430,9 +6430,6 @@ routingToolsMenu() {
         socks5Routing
         ;;
     5)
-        if [[ -n "${singBoxConfigPath}" ]]; then
-            echoContent red "\n ---> 此功能不支持Hysteria2、Tuic"
-        fi
         dnsRouting 1
         ;;
         #    6)
@@ -7083,62 +7080,104 @@ EOF
     fi
     exit 0
 }
+
+# 添加xray dns 配置
+addXrayDNSConfig() {
+    local ip=$1
+    local domainList=$2
+    local domains=[]
+    while read -r line; do
+        local geositeStatus
+        geositeStatus=$(curl -s "https://api.github.com/repos/v2fly/domain-list-community/contents/data/${line}" | jq .message)
+
+        if [[ "${geositeStatus}" == "null" ]]; then
+            domains=$(echo "${domains}" | jq -r '. += ["geosite:'"${line}"'"]')
+        else
+            domains=$(echo "${domains}" | jq -r '. += ["domain:'"${line}"'"]')
+        fi
+    done < <(echo "${domainList}" | tr ',' '\n')
+
+    if [[ "${coreInstallType}" == "1" ]]; then
+
+        cat <<EOF >${configPath}11_dns.json
+{
+    "dns": {
+        "servers": [
+            {
+                "address": "${ip}",
+                "port": 53,
+                "domains": ${domains}
+        "localhost"
+        ]
+    }
+}
+EOF
+    fi
+}
+
+# 添加sing-box dns配置
+addSingBoxDNSConfig() {
+    local ip=$1
+    local domainList=$2
+
+    local rules=
+    rules=$(initSingBoxRules "${domainList}" "dns")
+    # domain精确匹配规则
+    local domainRules=
+    domainRules=$(echo "${rules}" | jq .domainRules)
+
+    # ruleSet规则集
+    local ruleSet=
+    ruleSet=$(echo "${rules}" | jq .ruleSet)
+
+    # ruleSet规则tag
+    local ruleSetTag=[]
+    if [[ "$(echo "${ruleSet}" | jq '.|length')" != "0" ]]; then
+        ruleSetTag=$(echo "${ruleSet}" | jq '.|map(.tag)')
+    fi
+    if [[ -n "${singBoxConfigPath}" ]]; then
+        cat <<EOF >"${singBoxConfigPath}dns.json"
+{
+  "dns": {
+    "servers": [
+      {
+        "tag": "local",
+        "address": "local"
+      },
+      {
+        "tag": "dnsRouting",
+        "address": "${ip}"
+      }
+    ],
+    "rules": [
+      {
+        "rule_set": ${ruleSetTag},
+        "domain": ${domainRules},
+        "server":"dnsRouting"
+      }
+    ]
+  },
+  "route":{
+    "rule_set":${ruleSet}
+  }
+}
+EOF
+    fi
+}
 # 设置dns
 setUnlockDNS() {
     read -r -p "请输入分流的DNS:" setDNS
     if [[ -n ${setDNS} ]]; then
         echoContent red "=============================================================="
         echoContent yellow "录入示例:netflix,disney,hulu"
-        echoContent yellow "默认方案请输入1，默认方案包括以下内容"
-        echoContent yellow "netflix,bahamut,hulu,hbo,disney,bbc,4chan,fox,abema,dmm,niconico,pixiv,bilibili,viu"
         read -r -p "请按照上面示例录入域名:" domainList
-        if [[ "${domainList}" == "1" ]]; then
-            cat <<EOF >${configPath}11_dns.json
-{
-    "dns": {
-        "servers": [
-            {
-                "address": "${setDNS}",
-                "port": 53,
-                "domains": [
-                    "geosite:netflix",
-                    "geosite:bahamut",
-                    "geosite:hulu",
-                    "geosite:hbo",
-                    "geosite:disney",
-                    "geosite:bbc",
-                    "geosite:4chan",
-                    "geosite:fox",
-                    "geosite:abema",
-                    "geosite:dmm",
-                    "geosite:niconico",
-                    "geosite:pixiv",
-                    "geosite:bilibili",
-                    "geosite:viu"
-                ]
-            },
-        "localhost"
-        ]
-    }
-}
-EOF
-        elif [[ -n "${domainList}" ]]; then
-            cat <<EOF >${configPath}11_dns.json
-{
-    "dns": {
-        "servers": [
-            {
-                "address": "${setDNS}",
-                "port": 53,
-                "domains": [
-                    "geosite:${domainList//,/\",\"geosite:}"
-                ]
-            },
-        "localhost"
-        ]
-    }
-}
-EOF
+
+        if [[ "${coreInstallType}" == "1" ]]; then
+            addXrayDNSConfig "${setDNS}" "${domainList}"
+        fi
+
+        if [[ -n "${singBoxConfigPath}" ]]; then
+            addSingBoxDNSConfig "${setDNS}" "${domainList}"
         fi
 
         reloadCore
@@ -7640,6 +7679,7 @@ server {
 EOF
         handleNginx stop
         handleNginx start
+        systemctl enable nginx
     fi
     if [[ -z $(pgrep -f "nginx") ]]; then
         handleNginx start
@@ -8698,7 +8738,7 @@ menu() {
 	echoContent red "\n=============================================================="
 	echoContent green "原作者：mack-a"
 	echoContent green "作者：Wizard89"
-	echoContent green "当前版本：v3.0.3"
+	echoContent green "当前版本：v3.0.4"
 	echoContent green "Github：https://github.com/Wizard89/v2ray-agent"
 	echoContent green "描述：八合一共存脚本\c"
     showInstallStatus
