@@ -1293,11 +1293,11 @@ updateRedirectNginxConf() {
     redirectDomain=${domain}:${port}
 
     local nginxH2Conf=
-    nginxH2Conf="listen 127.0.0.1:31302 http2 so_keepalive=on;"
+    nginxH2Conf="listen 127.0.0.1:31302 http2 so_keepalive=on proxy_protocol;"
     nginxVersion=$(nginx -v 2>&1)
 
     if echo "${nginxVersion}" | grep -q "1.25" && [[ $(echo "${nginxVersion}" | awk -F "[.]" '{print $3}') -gt 0 ]]; then
-        nginxH2Conf="listen 127.0.0.1:31302 so_keepalive=on;http2 on;"
+        nginxH2Conf="listen 127.0.0.1:31302 so_keepalive=on proxy_protocol;http2 on;"
     fi
 
     cat <<EOF >${nginxConfigPath}alone.conf
@@ -1316,10 +1316,14 @@ server {
 	server_name ${domain};
 	root ${nginxStaticPath};
 
+    set_real_ip_from 0.0.0.0/0;
+    real_ip_header proxy_protocol;
+
 	client_header_timeout 1071906480m;
     keepalive_timeout 1071906480m;
 
 	location ~ ^/s/(clashMeta|default|clashMetaProfiles)/(.*) {
+	    proxy_set_header X-Real-IP \$proxy_protocol_addr;
         default_type 'text/plain; charset=utf-8';
         alias /etc/v2ray-agent/subscribe/\$1/\$2;
     }
@@ -1353,9 +1357,14 @@ EOF
         cat <<EOF >>${nginxConfigPath}alone.conf
 server {
 	${nginxH2Conf}
+
+	set_real_ip_from 0.0.0.0/0;
+    real_ip_header proxy_protocol;
+
 	server_name ${domain};
 	root ${nginxStaticPath};
 	location ~ ^/s/(clashMeta|default|clashMetaProfiles)/(.*) {
+	    proxy_set_header X-Real-IP \$proxy_protocol_addr;
         default_type 'text/plain; charset=utf-8';
         alias /etc/v2ray-agent/subscribe/\$1/\$2;
     }
@@ -1376,9 +1385,14 @@ EOF
         cat <<EOF >>${nginxConfigPath}alone.conf
 server {
 	${nginxH2Conf}
-	server_name ${domain};
+
+	set_real_ip_from 0.0.0.0/0;
+    real_ip_header proxy_protocol;
+
+    server_name ${domain};
 	root ${nginxStaticPath};
 	location ~ ^/s/(clashMeta|default|clashMetaProfiles)/(.*) {
+	    proxy_set_header X-Real-IP \$proxy_protocol_addr;
         default_type 'text/plain; charset=utf-8';
         alias /etc/v2ray-agent/subscribe/\$1/\$2;
     }
@@ -1400,13 +1414,18 @@ EOF
         cat <<EOF >>${nginxConfigPath}alone.conf
 server {
 	${nginxH2Conf}
+
+	set_real_ip_from 0.0.0.0/0;
+    real_ip_header proxy_protocol;
+
 	server_name ${domain};
 	root ${nginxStaticPath};
 
     location ~ ^/s/(clashMeta|default|clashMetaProfiles)/(.*) {
-            default_type 'text/plain; charset=utf-8';
-            alias /etc/v2ray-agent/subscribe/\$1/\$2;
-        }
+        proxy_set_header X-Real-IP \$proxy_protocol_addr;
+        default_type 'text/plain; charset=utf-8';
+        alias /etc/v2ray-agent/subscribe/\$1/\$2;
+    }
 	location / {
 	}
 }
@@ -1419,9 +1438,10 @@ server {
 	server_name ${domain};
 	root ${nginxStaticPath};
 	location ~ ^/s/(clashMeta|default|clashMetaProfiles)/(.*) {
-            default_type 'text/plain; charset=utf-8';
-            alias /etc/v2ray-agent/subscribe/\$1/\$2;
-        }
+        proxy_set_header X-Real-IP \$proxy_protocol_addr;
+        default_type 'text/plain; charset=utf-8';
+        alias /etc/v2ray-agent/subscribe/\$1/\$2;
+    }
 	location / {
 	}
 }
@@ -3334,7 +3354,7 @@ EOF
         {
             "protocol":"freedom",
             "settings": {
-                domainStrategy":"UseIP"
+                "domainStrategy":"UseIP"
             },
             "tag":"${tag}"
         }
@@ -3799,11 +3819,11 @@ EOF
 EOF
     # VLESS_TCP_TLS_Vision
     # 回落nginx
-    local fallbacksList='{"dest":31300,"xver":0},{"alpn":"h2","dest":31302,"xver":0}'
+    local fallbacksList='{"dest":31300,"xver":1},{"alpn":"h2","dest":31302,"xver":1}'
 
     # trojan
     if echo "${selectCustomInstallType}" | grep -q ",4," || [[ "$1" == "all" ]]; then
-        fallbacksList='{"dest":31296,"xver":1},{"alpn":"h2","dest":31302,"xver":0}'
+        fallbacksList='{"dest":31296,"xver":1},{"alpn":"h2","dest":31302,"xver":1}'
         cat <<EOF >/etc/v2ray-agent/xray/conf/04_trojan_TCP_inbounds.json
 {
 "inbounds":[
@@ -8756,7 +8776,7 @@ menu() {
 	echoContent red "\n=============================================================="
 	echoContent green "原作者：mack-a"
 	echoContent green "作者：Wizard89"
-	echoContent green "当前版本：v3.0.7"
+	echoContent green "当前版本：v3.0.8"
 	echoContent green "Github：https://github.com/Wizard89/v2ray-agent"
 	echoContent green "描述：八合一共存脚本\c"
     showInstallStatus
