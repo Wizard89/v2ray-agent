@@ -771,7 +771,7 @@ readConfigHostPathUUID() {
     if [[ -f "/etc/v2ray-agent/cdn" ]] && grep -q "address" "/etc/v2ray-agent/cdn"; then
         currentCDNAddress=$(grep "address" "/etc/v2ray-agent/cdn" | awk -F "[:]" '{print $2}')
     else
-        currentCDNAddress=currentHost
+        currentCDNAddress="${currentHost}"
     fi
 }
 
@@ -3809,7 +3809,8 @@ EOF
         "type": "field",
         "domain": [
           "domain:gstatic.com",
-          "domain:googleapis.com"
+          "domain:googleapis.com",
+          "domain:googleapis.cn"
         ],
         "outboundTag": "z_direct_outbound"
       }
@@ -8729,7 +8730,7 @@ menu() {
 	echoContent red "\n=============================================================="
 	echoContent green "原作者：mack-a"
 	echoContent green "作者：Wizard89"
-	echoContent green "当前版本：v3.0.14"
+	echoContent green "当前版本：v3.0.15"
 	echoContent green "Github：https://github.com/Wizard89/v2ray-agent"
 	echoContent green "描述：八合一共存脚本\c"
     showInstallStatus
