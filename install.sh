@@ -1810,7 +1810,7 @@ nginxBlog() {
         if [[ "${nginxBlogInstallStatus}" == "y" ]]; then
             rm -rf "${nginxStaticPath}"
             randomNum=$((RANDOM % 6 + 1))
-            wget -q "${wgetShowProgressStatus}" -P "${nginxStaticPath}" https://raw.githubusercontent.com/Wizard89/v2ray-agent/master/fodder/blog/unable/html${randomNum}.zip >/dev/null
+            wget -q "${wgetShowProgressStatus}" -P "${nginxStaticPath}" https://raw.githubusercontent.com/Wizard89/v2ray-agent/master/fodder/blog/unable/html${randomNum}.zip
             unzip -o "${nginxStaticPath}html${randomNum}.zip" -d "${nginxStaticPath}" >/dev/null
             rm -f "${nginxStaticPath}html${randomNum}.zip*"
             echoContent green " ---> 添加伪装站点成功"
@@ -5119,7 +5119,7 @@ updateNginxBlog() {
     if [[ "${selectInstallNginxBlogType}" =~ ^[1-9]$ ]]; then
         rm -rf "${nginxStaticPath}"
 
-		wget -q "${wgetShowProgressStatus}" -P "${nginxStaticPath}" "https://raw.githubusercontent.com/Wizard89/v2ray-agent/master/fodder/blog/unable/html${selectInstallNginxBlogType}.zip" >/dev/null
+		wget -q "${wgetShowProgressStatus}" -P "${nginxStaticPath}" "https://raw.githubusercontent.com/Wizard89/v2ray-agent/master/fodder/blog/unable/html${selectInstallNginxBlogType}.zip"
 
         unzip -o "${nginxStaticPath}html${selectInstallNginxBlogType}.zip" -d "${nginxStaticPath}" >/dev/null
         rm -f "${nginxStaticPath}html${selectInstallNginxBlogType}.zip*"
@@ -7364,10 +7364,9 @@ customXrayInstall() {
     #        selectCustomInstallType="${selectCustomInstallType},"
     #    fi
     #
-    #    if [[ "${selectCustomInstallType:0:1}" != "," ]]; then
-    #        selectCustomInstallType=",${selectCustomInstallType},"
-    #    fi
-
+    if [[ "${selectCustomInstallType:0:1}" != "," ]]; then
+        selectCustomInstallType=",${selectCustomInstallType},"
+    fi
     if [[ "${selectCustomInstallType//,/}" =~ ^[0-7]+$ ]]; then
         unInstallSubscribe
         checkBTPanel
@@ -8748,7 +8747,7 @@ menu() {
 	echoContent red "\n=============================================================="
 	echoContent green "原作者：mack-a"
 	echoContent green "作者：Wizard89"
-	echoContent green "当前版本：v3.0.23"
+	echoContent green "当前版本：v3.0.24"
 	echoContent green "Github：https://github.com/Wizard89/v2ray-agent"
 	echoContent green "描述：八合一共存脚本\c"
     showInstallStatus
