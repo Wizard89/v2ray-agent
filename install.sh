@@ -742,6 +742,8 @@ readConfigHostPathUUID() {
         # reality
         if echo ${currentInstallProtocolType} | grep -q ",7,"; then
 
+            currentClients=$(jq -r .inbounds[0].settings.clients ${configPath}07_VLESS_vision_reality_inbounds.json)
+
             xrayVLESSRealityVisionPort=$(jq -r .inbounds[0].port ${configPath}07_VLESS_vision_reality_inbounds.json)
             if [[ "${currentPort}" == "${xrayVLESSRealityVisionPort}" ]]; then
                 xrayVLESSRealityVisionPort="${currentDefaultPort}"
@@ -2324,7 +2326,7 @@ updateV2Ray() {
 updateXray() {
     readInstallType
 
-    if [[ -z "${coreInstallType}" ]]; then
+    if [[ -z "${coreInstallType}" || "${coreInstallType}" != "1" ]]; then
         if [[ -n "$1" ]]; then
             version=$1
         else
@@ -2346,7 +2348,7 @@ updateXray() {
         if [[ -n "$1" ]]; then
             version=$1
         else
-            version=$(curl -s "https://api.github.com/repos/XTLS/Xray-core/releases?per_page=5" | jq -r ".[]|select (.prerelease==${prereleaseStatus})|.tag_name" | head -1)
+            version=$(curl -s "https://api.github.com/repos/XTLS/Xray-core/releases?per_page=10" | jq -r ".[]|select (.prerelease==${prereleaseStatus})|.tag_name" | head -1)
         fi
 
         if [[ -n "$1" ]]; then
@@ -2364,7 +2366,6 @@ updateXray() {
             read -r -p "当前版本与最新版相同，是否重新安装？[y/n]:" reInstallXrayStatus
             if [[ "${reInstallXrayStatus}" == "y" ]]; then
                 handleXray stop
-                rm -f /etc/v2ray-agent/xray/xray
                 rm -f /etc/v2ray-agent/xray/xray
                 updateXray
             else
@@ -8754,7 +8755,7 @@ menu() {
 	echoContent red "\n=============================================================="
 	echoContent green "原作者：mack-a"
 	echoContent green "作者：Wizard89"
-	echoContent green "当前版本：v3.0.27"
+	echoContent green "当前版本：v3.0.28"
 	echoContent green "Github：https://github.com/Wizard89/v2ray-agent"
 	echoContent green "描述：八合一共存脚本\c"
     showInstallStatus
