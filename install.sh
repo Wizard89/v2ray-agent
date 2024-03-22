@@ -5879,15 +5879,16 @@ ipv6Routing() {
             fi
 
         fi
-
-        if [[ -f "${singBoxConfigPath}IPv6_out_route.json" ]]; then
-            echoContent yellow "sing-box"
-            jq -r -c '.route.rules[]|select (.outbound=="IPv6_out")' "${singBoxConfigPath}IPv6_out_route.json" | jq -r
-        elif [[ ! -f "${singBoxConfigPath}IPv6_out_route.json" && -f "${singBoxConfigPath}IPv6_out.json" ]]; then
-            echoContent yellow "sing-box"
-            echoContent green " ---> 已设置IPv6全局分流"
-        else
-            echoContent yellow " ---> 未安装IPv6分流"
+        if [[ -n "${singBoxConfigPath}" ]]; then
+            if [[ -f "${singBoxConfigPath}IPv6_out_route.json" ]]; then
+                echoContent yellow "sing-box"
+                jq -r -c '.route.rules[]|select (.outbound=="IPv6_out")' "${singBoxConfigPath}IPv6_out_route.json" | jq -r
+            elif [[ ! -f "${singBoxConfigPath}IPv6_out_route.json" && -f "${singBoxConfigPath}IPv6_out.json" ]]; then
+                echoContent yellow "sing-box"
+                echoContent green " ---> 已设置IPv6全局分流"
+            else
+                echoContent yellow " ---> 未安装IPv6分流"
+            fi
         fi
 
         exit 0
@@ -6296,15 +6297,18 @@ showWireGuardDomain() {
     fi
 
     # sing-box
-    if [[ -f "${singBoxConfigPath}wireguard_out_${type}_route.json" ]]; then
-        echoContent yellow "sing-box"
-        jq -r -c '.route.rules[]' "${singBoxConfigPath}wireguard_out_${type}_route.json" | jq -r
-    elif [[ ! -f "${singBoxConfigPath}wireguard_out_${type}_route.json" && -f "${singBoxConfigPath}wireguard_out_${type}.json" ]]; then
-        echoContent yellow "sing-box"
-        echoContent green " ---> 已设置warp ${type}全局分流"
-    else
-        echoContent yellow " ---> 未安装warp ${type}分流"
+    if [[ -n "${singBoxConfigPath}" ]]; then
+        if [[ -f "${singBoxConfigPath}wireguard_out_${type}_route.json" ]]; then
+            echoContent yellow "sing-box"
+            jq -r -c '.route.rules[]' "${singBoxConfigPath}wireguard_out_${type}_route.json" | jq -r
+        elif [[ ! -f "${singBoxConfigPath}wireguard_out_${type}_route.json" && -f "${singBoxConfigPath}wireguard_out_${type}.json" ]]; then
+            echoContent yellow "sing-box"
+            echoContent green " ---> 已设置warp ${type}全局分流"
+        else
+            echoContent yellow " ---> 未安装warp ${type}分流"
+        fi
     fi
+
 }
 
 # 添加WireGuard分流
@@ -8810,7 +8814,7 @@ menu() {
 	echoContent red "\n=============================================================="
 	echoContent green "原作者：mack-a"
 	echoContent green "作者：Wizard89"
-	echoContent green "当前版本：v3.0.31"
+	echoContent green "当前版本：v3.0.32"
 	echoContent green "Github：https://github.com/Wizard89/v2ray-agent"
 	echoContent green "描述：八合一共存脚本\c"
     showInstallStatus
