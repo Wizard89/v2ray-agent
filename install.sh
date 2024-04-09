@@ -3546,12 +3546,8 @@ EOF
 
 # sing-box Tuic安装
 singBoxTuicInstall() {
-    if [[ "${coreInstallType}" == "2" ]]; then
-        echoContent red "\n ---> 此功能仅支持Xray-core内核，请全部安装或者个性化安装Hysteria2"
-        exit 0
-    fi
-    if ! echo "${currentInstallProtocolType}" | grep -q ",0," || [[ -z "${coreInstallType}" ]]; then
-        echoContent red "\n ---> 由于证书环境依赖，如安装Tuic，请先安装Xray-core的VLESS_TCP_TLS_Vision"
+    if ! echo "${currentInstallProtocolType}" | grep -qE ",0,|,1,|,2,|,3,|,4,|,5,|,6,|,9,|,10,"; then
+        echoContent red "\n ---> 由于需要依赖证书，如安装Tuic，请先安装带有TLS标识协议"
         exit 0
     fi
 
@@ -3566,12 +3562,8 @@ singBoxTuicInstall() {
 
 # sing-box hy2安装
 singBoxHysteria2Install() {
-    if [[ "${coreInstallType}" == "2" ]]; then
-        echoContent red "\n ---> 此功能仅支持Xray-core内核，请全部安装或者个性化安装Hysteria2"
-        exit 0
-    fi
-    if ! echo "${currentInstallProtocolType}" | grep -q ",0," || [[ -z "${coreInstallType}" ]]; then
-        echoContent red "\n ---> 由于证书环境依赖，如安装Hysteria2，请先安装Xray-core的VLESS_TCP_TLS_Vision"
+    if ! echo "${currentInstallProtocolType}" | grep -qE ",0,|,1,|,2,|,3,|,4,|,5,|,6,|,9,|,10,"; then
+        echoContent red "\n ---> 由于需要依赖证书，如安装Hysteria2，请先安装带有TLS标识协议"
         exit 0
     fi
 
@@ -8689,11 +8681,12 @@ manageHysteria() {
     echoContent red "\n=============================================================="
     local hysteria2Status=
     if [[ -n "${singBoxConfigPath}" ]] && [[ -f "/etc/v2ray-agent/sing-box/conf/config/06_hysteria2_inbounds.json" ]]; then
-        echoContent yellow " 依赖第三方sing-box\n"
+        echoContent yellow "依赖第三方sing-box\n"
         echoContent yellow "1.重新安装"
         echoContent yellow "2.卸载"
         hysteria2Status=true
     else
+        echoContent yellow "依赖sing-box内核\n"
         echoContent yellow "1.安装"
     fi
 
@@ -8712,11 +8705,12 @@ manageTuic() {
     echoContent red "\n=============================================================="
     local tuicStatus=
     if [[ -n "${singBoxConfigPath}" ]] && [[ -f "/etc/v2ray-agent/sing-box/conf/config/09_tuic_inbounds.json" ]]; then
-        echoContent yellow " 依赖第三方sing-box\n"
+        echoContent yellow "依赖sing-box内核\n"
         echoContent yellow "1.重新安装"
         echoContent yellow "2.卸载"
         tuicStatus=true
     else
+        echoContent yellow "依赖sing-box内核\n"
         echoContent yellow "1.安装"
     fi
 
@@ -8830,7 +8824,7 @@ menu() {
 	echoContent red "\n=============================================================="
 	echoContent green "原作者：mack-a"
 	echoContent green "作者：Wizard89"
-	echoContent green "当前版本：v3.0.35"
+	echoContent green "当前版本：v3.0.36"
 	echoContent green "Github：https://github.com/Wizard89/v2ray-agent"
 	echoContent green "描述：八合一共存脚本\c"
     showInstallStatus
@@ -8843,13 +8837,9 @@ menu() {
     fi
 
     echoContent yellow "2.任意组合安装"
-    if [[ "${coreInstallType}" != "2" ]]; then
-        echoContent yellow "4.Hysteria2管理"
-        echoContent yellow "5.REALITY管理"
-        echoContent yellow "6.Tuic管理"
-    else
-        echoContent yellow "5.REALITY管理"
-    fi
+    echoContent yellow "4.Hysteria2管理"
+    echoContent yellow "5.REALITY管理"
+    echoContent yellow "6.Tuic管理"
 
     echoContent skyBlue "-------------------------工具管理-----------------------------"
     echoContent yellow "7.用户管理"
