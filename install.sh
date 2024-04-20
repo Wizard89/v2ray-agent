@@ -4425,6 +4425,7 @@ EOF
     removeSingBoxConfig cn_block_route
     removeSingBoxConfig 01_direct_outbound
     removeSingBoxConfig block_domain_outbound
+    removeSingBoxConfig dns
 }
 # 初始化 sing-box订阅配置
 initSubscribeLocalConfig() {
@@ -5595,7 +5596,7 @@ removeUser() {
         if [[ "${coreInstallType}" == "1" ]]; then
             jq -r -c .inbounds[0].settings.clients[].email ${configPath}${userConfigType}.json | awk '{print NR""":"$0}'
         elif [[ "${coreInstallType}" == "2" ]]; then
-            jq -r -c .inbounds[0].users[].name ${configPath}${userConfigType}.json | awk '{print NR""":"$0}'
+            jq -r -c .inbounds[0].users[].name//.inbounds[0].users[].username ${configPath}${userConfigType}.json | awk '{print NR""":"$0}'
         fi
 
         read -r -p "请选择要删除的用户编号[仅支持单个删除]:" delUserIndex
@@ -5627,19 +5628,19 @@ removeUser() {
 
         if echo ${currentInstallProtocolType} | grep -q ",3,"; then
             local vmessWSResult
-            vmessWSResult=$(jq -r 'del(.inbounds[0].settings.clients['${delUserIndex}'])' ${configPath}05_VMess_WS_inbounds.json)
+            vmessWSResult=$(jq -r 'del(.inbounds[0].settings.clients['${delUserIndex}']//.inbounds[0].users['${delUserIndex}'])' ${configPath}05_VMess_WS_inbounds.json)
             echo "${vmessWSResult}" | jq . >${configPath}05_VMess_WS_inbounds.json
         fi
 
         if echo ${currentInstallProtocolType} | grep -q ",5,"; then
             local vlessGRPCResult
-            vlessGRPCResult=$(jq -r 'del(.inbounds[0].settings.clients['${delUserIndex}'])' ${configPath}06_VLESS_gRPC_inbounds.json)
+            vlessGRPCResult=$(jq -r 'del(.inbounds[0].settings.clients['${delUserIndex}']//.inbounds[0].users['${delUserIndex}'])' ${configPath}06_VLESS_gRPC_inbounds.json)
             echo "${vlessGRPCResult}" | jq . >${configPath}06_VLESS_gRPC_inbounds.json
         fi
 
         if echo ${currentInstallProtocolType} | grep -q ",4,"; then
             local trojanTCPResult
-            trojanTCPResult=$(jq -r 'del(.inbounds[0].settings.clients['${delUserIndex}'])' ${configPath}04_trojan_TCP_inbounds.json)
+            trojanTCPResult=$(jq -r 'del(.inbounds[0].settings.clients['${delUserIndex}']//.inbounds[0].users['${delUserIndex}'])' ${configPath}04_trojan_TCP_inbounds.json)
             echo "${trojanTCPResult}" | jq . >${configPath}04_trojan_TCP_inbounds.json
         fi
 
@@ -5656,13 +5657,18 @@ removeUser() {
 
         if echo ${currentInstallProtocolType} | grep -q ",6,"; then
             local hysteriaResult
-            hysteriaResult=$(jq -r 'del(.inbounds[0].users['${delUserIndex}'])' "${singBoxConfigPath}06_hysteria2_inbounds.json")
+            hysteriaResult=$(jq -r 'del(.inbounds[0].users['${delUserIndex}']//.inbounds[0].users['${delUserIndex}'])' "${singBoxConfigPath}06_hysteria2_inbounds.json")
             echo "${hysteriaResult}" | jq . >"${singBoxConfigPath}06_hysteria2_inbounds.json"
         fi
         if echo ${currentInstallProtocolType} | grep -q ",9,"; then
             local tuicResult
-            tuicResult=$(jq -r 'del(.inbounds[0].users['${delUserIndex}'])' "${singBoxConfigPath}09_tuic_inbounds.json")
+            tuicResult=$(jq -r 'del(.inbounds[0].users['${delUserIndex}']//.inbounds[0].users['${delUserIndex}'])' "${singBoxConfigPath}09_tuic_inbounds.json")
             echo "${tuicResult}" | jq . >"${singBoxConfigPath}09_tuic_inbounds.json"
+        fi
+        if echo ${currentInstallProtocolType} | grep -q ",10,"; then
+            local naiveResult
+            naiveResult=$(jq -r 'del(.inbounds[0].users['${delUserIndex}']//.inbounds[0].users['${delUserIndex}'])' "${singBoxConfigPath}10_naive_inbounds.json")
+            echo "${naiveResult}" | jq . >"${singBoxConfigPath}10_naive_inbounds.json"
         fi
         reloadCore
     fi
@@ -7305,7 +7311,8 @@ setUnlockDNS() {
 
 # 移除 DNS分流
 removeUnlockDNS() {
-    cat <<EOF >${configPath}11_dns.json
+    if [[ "${coreInstallType}" == "1" && -f "${configPath}11_dns.json" ]]; then
+        cat <<EOF >${configPath}11_dns.json
 {
 	"dns": {
 		"servers": [
@@ -7314,6 +7321,22 @@ removeUnlockDNS() {
 	}
 }
 EOF
+    fi
+
+    if [[ "${coreInstallType}" == "2" && -f "${singBoxConfigPath}dns.json" ]]; then
+        cat <<EOF >${singBoxConfigPath}dns.json
+{
+    "dns": {
+        "servers":[
+            {
+                "address":"local"
+            }
+        ]
+    }
+}
+EOF
+    fi
+
     reloadCore
 
     echoContent green " ---> 卸载成功"
@@ -8838,7 +8861,7 @@ menu() {
 	echoContent red "\n=============================================================="
 	echoContent green "原作者：mack-a"
 	echoContent green "作者：Wizard89"
-	echoContent green "当前版本：v3.0.37"
+	echoContent green "当前版本：v3.0.38"
 	echoContent green "Github：https://github.com/Wizard89/v2ray-agent"
 	echoContent green "描述：八合一共存脚本\c"
     showInstallStatus
