@@ -1556,11 +1556,15 @@ switchDNSAPI() {
     if [[ "${dnsAPIStatus}" == "y" ]]; then
         echoContent red "\n=============================================================="
         echoContent yellow "1.cloudflare[默认]"
+        echoContent yellow "2.aliyun"
         echoContent red "=============================================================="
         read -r -p "请选择[回车]使用默认:" selectDNSAPIType
         case ${selectDNSAPIType} in
         1)
             dnsAPIType="cloudflare"
+            ;;
+        2)
+            dnsAPIType="aliyun"
             ;;
         *)
             dnsAPIType="cloudflare"
@@ -1575,6 +1579,24 @@ initDNSAPIConfig() {
         echoContent yellow "\n CF_Token参考配置教程："
         read -r -p "请输入API Token:" cfAPIToken
         if [[ -z "${cfAPIToken}" ]]; then
+            echoContent red " ---> 输入为空，请重新输入"
+            initDNSAPIConfig "$1"
+        else
+            echo
+            if ! echo "${dnsTLSDomain}" | grep -q "\." || [[ -z $(echo "${dnsTLSDomain}" | awk -F "[.]" '{print $1}') ]]; then
+                echoContent green " ---> 不支持此域名申请通配符证书，建议使用此格式[xx.xx.xx]"
+                exit 0
+            fi
+            read -r -p "是否使用*.${dnsTLSDomain}进行API申请通配符证书？[y/n]:" dnsAPIStatus
+            if [[ "${dnsAPIStatus}" != "y" ]]; then
+                exit 0
+            fi
+        fi
+    elif [[ "$1" == "aliyun" ]]; then
+        #        echoContent yellow "\n CF_Token参考配置教程："
+        read -r -p "请输入Ali Key:" aliKey
+        read -r -p "请输入Ali Secret:" aliSecret
+        if [[ -z "${aliKey}" || -z "${aliSecret}" ]]; then
             echoContent red " ---> 输入为空，请重新输入"
             initDNSAPIConfig "$1"
         else
@@ -1641,9 +1663,13 @@ selectAcmeInstallSSL() {
 
 # 安装SSL证书
 acmeInstallSSL() {
-    if [[ -n "${dnsAPIType}" ]]; then
+
+    if [[ "${dnsAPIType}" == "cloudflare" ]]; then
         echoContent green " ---> 生成通配符证书中"
         sudo CF_Token="${cfAPIToken}" "$HOME/.acme.sh/acme.sh" --issue -d "*.${dnsTLSDomain}" --dns dns_cf -k ec-256 --server "${sslType}" ${sslIPv6} 2>&1 | tee -a /etc/v2ray-agent/tls/acme.log >/dev/null
+    elif [[ "${dnsAPIType}" == "aliyun" ]]; then
+        echoContent green " ---> 生成通配符证书中"
+        sudo Ali_Key="${aliKey}" Ali_Secret="${aliSecret}" "$HOME/.acme.sh/acme.sh" --issue -d "*.${dnsTLSDomain}" --dns dns_ali -k ec-256 --server "${sslType}" ${sslIPv6} 2>&1 | tee -a /etc/v2ray-agent/tls/acme.log >/dev/null
     else
         echoContent green " ---> 生成证书中"
         sudo "$HOME/.acme.sh/acme.sh" --issue -d "${tlsDomain}" --standalone -k ec-256 --server "${sslType}" ${sslIPv6} 2>&1 | tee -a /etc/v2ray-agent/tls/acme.log >/dev/null
@@ -9113,7 +9139,7 @@ menu() {
 	echoContent red "\n=============================================================="
 	echoContent green "原作者：mack-a"
 	echoContent green "作者：Wizard89"
-	echoContent green "当前版本：v3.0.46"
+	echoContent green "当前版本：v3.0.47"
 	echoContent green "Github：https://github.com/Wizard89/v2ray-agent"
 	echoContent green "描述：八合一共存脚本\c"
     showInstallStatus
