@@ -5622,14 +5622,14 @@ manageCDN() {
             read -r -p "请输入想要自定义CDN IP或者域名:" setCDNDomain
             ;;
         7)
-            echo >/etc/v2ray-agent/cdn"
+            echo >/etc/v2ray-agent/cdn
             echoContent green " ---> 移除成功"
             exit 0
             ;;
         esac
 
         if [[ -n "${setCDNDomain}" ]]; then
-            echo >/etc/v2ray-agent/cdn"
+            echo >/etc/v2ray-agent/cdn
             echo "${setCDNDomain}" >"/etc/v2ray-agent/cdn"
             echoContent green " ---> 修改CDN成功，重新查看用户管理或者订阅后生成新的节点内容"
         else
@@ -9204,7 +9204,7 @@ menu() {
 	echoContent red "\n=============================================================="
 	echoContent green "原作者：mack-a"
 	echoContent green "作者：Wizard89"
-	echoContent green "当前版本：v3.0.56"
+	echoContent green "当前版本：v3.0.57"
 	echoContent green "Github：https://github.com/Wizard89/v2ray-agent"
 	echoContent green "描述：八合一共存脚本\c"
     showInstallStatus
