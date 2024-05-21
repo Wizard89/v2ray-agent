@@ -850,7 +850,7 @@ readConfigHostPathUUID() {
         fi
     fi
     if [[ -f "/etc/v2ray-agent/cdn" ]] && [[ -n "$(head -1 /etc/v2ray-agent/cdn)" ]]; then
-        currentCDNAddress=$(head -1 /etc/v2ray-agent/cdn" | awk -F "[:]" '{print $2}')
+        currentCDNAddress=$(head -1 /etc/v2ray-agent/cdn)
     else
         currentCDNAddress="${currentHost}"
     fi
@@ -9204,7 +9204,7 @@ menu() {
 	echoContent red "\n=============================================================="
 	echoContent green "原作者：mack-a"
 	echoContent green "作者：Wizard89"
-	echoContent green "当前版本：v3.0.57"
+	echoContent green "当前版本：v3.0.58"
 	echoContent green "Github：https://github.com/Wizard89/v2ray-agent"
 	echoContent green "描述：八合一共存脚本\c"
     showInstallStatus
