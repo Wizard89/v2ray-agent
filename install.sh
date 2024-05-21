@@ -1406,12 +1406,6 @@ server {
 	client_header_timeout 1071906480m;
     keepalive_timeout 1071906480m;
 
-	location ~ ^/s/(clashMeta|default|clashMetaProfiles|sing-box|sing-box_profiles)/(.*) {
-	    proxy_set_header X-Real-IP \$proxy_protocol_addr;
-        default_type 'text/plain; charset=utf-8';
-        alias /etc/v2ray-agent/subscribe/\$1/\$2;
-    }
-
     location /${currentPath}grpc {
     	if (\$content_type !~ "application/grpc") {
     		return 404;
@@ -1447,11 +1441,7 @@ server {
 
 	server_name ${domain};
 	root ${nginxStaticPath};
-	location ~ ^/s/(clashMeta|default|clashMetaProfiles|sing-box|sing-box_profiles)/(.*) {
-	    proxy_set_header X-Real-IP \$proxy_protocol_addr;
-        default_type 'text/plain; charset=utf-8';
-        alias /etc/v2ray-agent/subscribe/\$1/\$2;
-    }
+
 	location /${currentPath}grpc {
 		client_max_body_size 0;
 		keepalive_requests 4294967296;
@@ -1462,6 +1452,8 @@ server {
  		grpc_send_timeout 1071906480m;
 		grpc_pass grpc://127.0.0.1:31301;
 	}
+	location / {
+    }
 }
 EOF
 
@@ -1475,11 +1467,7 @@ server {
 
     server_name ${domain};
 	root ${nginxStaticPath};
-	location ~ ^/s/(clashMeta|default|clashMetaProfiles|sing-box|sing-box_profiles)/(.*) {
-	    proxy_set_header X-Real-IP \$proxy_protocol_addr;
-        default_type 'text/plain; charset=utf-8';
-        alias /etc/v2ray-agent/subscribe/\$1/\$2;
-    }
+
 	location /${currentPath}trojangrpc {
 		client_max_body_size 0;
 		# keepalive_time 1071906480m;
@@ -1491,6 +1479,8 @@ server {
  		grpc_send_timeout 1071906480m;
 		grpc_pass grpc://127.0.0.1:31301;
 	}
+	location / {
+    }
 }
 EOF
     else
@@ -1505,11 +1495,6 @@ server {
 	server_name ${domain};
 	root ${nginxStaticPath};
 
-    location ~ ^/s/(clashMeta|default|clashMetaProfiles|sing-box|sing-box_profiles)/(.*) {
-        proxy_set_header X-Real-IP \$proxy_protocol_addr;
-        default_type 'text/plain; charset=utf-8';
-        alias /etc/v2ray-agent/subscribe/\$1/\$2;
-    }
 	location / {
 	}
 }
@@ -1525,11 +1510,6 @@ server {
 	real_ip_header proxy_protocol;
 
 	root ${nginxStaticPath};
-	location ~ ^/s/(clashMeta|default|clashMetaProfiles|sing-box|sing-box_profiles)/(.*) {
-        proxy_set_header X-Real-IP \$proxy_protocol_addr;
-        default_type 'text/plain; charset=utf-8';
-        alias /etc/v2ray-agent/subscribe/\$1/\$2;
-    }
 	location / {
 	}
 }
@@ -8131,6 +8111,8 @@ server {
         default_type 'text/plain; charset=utf-8';
         alias /etc/v2ray-agent/subscribe/\$1/\$2;
     }
+    location / {
+    }
 }
 EOF
         bootStartup nginx
@@ -8572,9 +8554,7 @@ initRandomSalt() {
 # 订阅
 subscribe() {
     readInstallProtocolType
-    if [[ "${coreInstallType}" == "1" ]] && [[ "${selectCustomInstallType}" == ",7," || "${currentInstallProtocolType}" == ",7,8," ]] || [[ "${coreInstallType}" == "2" ]]; then
-        installSubscribe
-    fi
+    installSubscribe
 
     readNginxSubscribe
     if [[ "${coreInstallType}" == "1" || "${coreInstallType}" == "2" ]]; then
@@ -8863,9 +8843,9 @@ initRealityClientServersName() {
         if [[ "${realityServerNameCurrentDomainStatus}" == "y" ]]; then
             realityServerName="${domain}"
             if [[ "${selectCoreType}" == "1" ]]; then
-                if [[ -n "${port}" ]]; then
-                    realityDomainPort="${port}"
-                elif [[ -z "${subscribePort}" ]]; then
+                #                if [[ -n "${port}" ]]; then
+                #                    realityDomainPort="${port}"
+                if [[ -z "${subscribePort}" ]]; then
                     echo
                     installSubscribe
                     readNginxSubscribe
@@ -9208,7 +9188,7 @@ menu() {
 	echoContent red "\n=============================================================="
 	echoContent green "原作者：mack-a"
 	echoContent green "作者：Wizard89"
-	echoContent green "当前版本：v3.0.52"
+	echoContent green "当前版本：v3.0.53"
 	echoContent green "Github：https://github.com/Wizard89/v2ray-agent"
 	echoContent green "描述：八合一共存脚本\c"
     showInstallStatus
