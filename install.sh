@@ -1400,7 +1400,7 @@ server {
 	server_name ${domain};
 	root ${nginxStaticPath};
 
-    set_real_ip_from 0.0.0.0/0;
+    set_real_ip_from 127.0.0.1;
     real_ip_header proxy_protocol;
 
 	client_header_timeout 1071906480m;
@@ -1442,7 +1442,7 @@ EOF
 server {
 	${nginxH2Conf}
 
-	set_real_ip_from 0.0.0.0/0;
+	set_real_ip_from 127.0.0.1;
     real_ip_header proxy_protocol;
 
 	server_name ${domain};
@@ -1470,7 +1470,7 @@ EOF
 server {
 	${nginxH2Conf}
 
-	set_real_ip_from 0.0.0.0/0;
+	set_real_ip_from 127.0.0.1;
     real_ip_header proxy_protocol;
 
     server_name ${domain};
@@ -1499,7 +1499,7 @@ EOF
 server {
 	${nginxH2Conf}
 
-	set_real_ip_from 0.0.0.0/0;
+	set_real_ip_from 127.0.0.1;
     real_ip_header proxy_protocol;
 
 	server_name ${domain};
@@ -1521,7 +1521,7 @@ server {
 	listen 127.0.0.1:31300 proxy_protocol;
 	server_name ${domain};
 
-	set_real_ip_from 0.0.0.0/0;
+	set_real_ip_from 127.0.0.1;
 	real_ip_header proxy_protocol;
 
 	root ${nginxStaticPath};
@@ -8118,6 +8118,13 @@ server {
     ${nginxSubscribeListen}
     ${serverName}
     ${nginxSubscribeSSL}
+    ssl_protocols              TLSv1.2 TLSv1.3;
+    ssl_ciphers                TLS13_AES_128_GCM_SHA256:TLS13_AES_256_GCM_SHA384:TLS13_CHACHA20_POLY1305_SHA256:ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-ECDSA-CHACHA20-POLY1305;
+    ssl_prefer_server_ciphers  on;
+    ssl_stapling               on;
+    ssl_stapling_verify        on;
+    resolver                   1.1.1.1 valid=60s;
+    resolver_timeout           2s;
     client_max_body_size 100m;
     root ${nginxStaticPath};
     location ~ ^/s/(clashMeta|default|clashMetaProfiles|sing-box|sing-box_profiles)/(.*) {
@@ -8169,7 +8176,7 @@ addSubscribeMenu() {
 # 添加其他机器clashMeta订阅
 addOtherSubscribe() {
     echoContent yellow "#注意事项:"
-    echoContent yellow "请仔细阅读以下文章： https://www.v2ray-agent.com/archives/1681804748677"
+    echoContent yellow "请仔细阅读以下文章："
     echoContent skyBlue "录入示例：www.v2ray-agent.com:443:vps1\n"
     read -r -p "请输入域名 端口 机器别名:" remoteSubscribeUrl
     if [[ -z "${remoteSubscribeUrl}" ]]; then
@@ -9201,7 +9208,7 @@ menu() {
 	echoContent red "\n=============================================================="
 	echoContent green "原作者：mack-a"
 	echoContent green "作者：Wizard89"
-	echoContent green "当前版本：v3.0.51"
+	echoContent green "当前版本：v3.0.52"
 	echoContent green "Github：https://github.com/Wizard89/v2ray-agent"
 	echoContent green "描述：八合一共存脚本\c"
     showInstallStatus
