@@ -4261,6 +4261,7 @@ EOF
     installSniffing
     removeXrayOutbound IPv4_out
     removeXrayOutbound IPv6_out
+    removeXrayOutbound socks5_outbound
     removeXrayOutbound blackhole_out
     removeXrayOutbound wireguard_out_IPv6
     removeXrayOutbound wireguard_out_IPv4
@@ -5726,8 +5727,8 @@ addUser() {
             elif [[ "${coreInstallType}" == "2" ]]; then
                 clients=$(initSingBoxClients 0 "${uuid}" "${email}")
             fi
-            clients=$(jq -r "${userConfig} = ${clients}" ${configPath}${frontingType}.json)
-            echo "${clients}" | jq . >${configPath}${frontingType}.json
+            clients=$(jq -r "${userConfig} = ${clients}" ${configPath}02_VLESS_TCP_inbounds.json)
+            echo "${clients}" | jq . >${configPath}02_VLESS_TCP_inbounds.json
         fi
 
         # VLESS WS
@@ -7005,8 +7006,12 @@ showSingBoxRoutingRules() {
             jq .route.rules "${singBoxConfigPath}$1.json"
         elif [[ "$1" == "socks5_outbound_route" && -f "${singBoxConfigPath}socks5_outbound.json" ]]; then
             echoContent yellow "已安装 sing-box socks5全局出站分流"
+            echoContent yellow "\n出站分流配置："
+            echoContent skyBlue "$(jq .outbounds[0] ${singBoxConfigPath}socks5_outbound.json)"
         elif [[ "$1" == "socks5_inbound_route" && -f "${singBoxConfigPath}20_socks5_inbounds.json" ]]; then
             echoContent yellow "已安装 sing-box socks5全局入站分流"
+            echoContent yellow "\n出站分流配置："
+            echoContent skyBlue "$(jq .outbounds[0] ${singBoxConfigPath}socks5_outbound.json)"
         fi
     fi
 }
@@ -7016,8 +7021,15 @@ showXrayRoutingRules() {
     if [[ "${coreInstallType}" == "1" ]]; then
         if [[ -f "${configPath}09_routing.json" ]]; then
             jq ".routing.rules[]|select(.outboundTag==\"$1\")" "${configPath}09_routing.json"
+
+            echoContent yellow "\n已安装 xray-core socks5全局出站分流"
+            echoContent yellow "\n出站分流配置："
+            echoContent skyBlue "$(jq .outbounds[0].settings.servers[0] ${configPath}socks5_outbound.json)"
+
         elif [[ "$1" == "socks5_outbound" && -f "${configPath}socks5_outbound.json" ]]; then
-            echoContent yellow "\n已安装 sing-box socks5全局出站分流"
+            echoContent yellow "\n已安装 xray-core socks5全局出站分流"
+            echoContent yellow "\n出站分流配置："
+            echoContent skyBlue "$(jq .outbounds[0].settings.servers[0] ${configPath}socks5_outbound.json)"
         fi
     fi
 }
@@ -7032,11 +7044,18 @@ removeSocks5Routing() {
     echoContent yellow "3.卸载全部"
     read -r -p "请选择:" unInstallSocks5RoutingStatus
     if [[ "${unInstallSocks5RoutingStatus}" == "1" ]]; then
-        removeXrayOutbound socks5_outbound
-        unInstallRouting socks5_outbound outboundTag
+        if [[ "${coreInstallType}" == "1" ]]; then
+            removeXrayOutbound socks5_outbound
+            unInstallRouting socks5_outbound outboundTag
+            addXrayOutbound z_direct_outbound
+        fi
 
-        removeSingBoxConfig socks5_outbound_route
-        removeSingBoxConfig socks5_inbound_route
+        if [[ -n "${singBoxConfigPath}" ]]; then
+            removeSingBoxConfig socks5_outbound
+            removeSingBoxConfig socks5_outbound_route
+            addSingBoxOutbound 01_direct_outbound
+        fi
+
     elif [[ "${unInstallSocks5RoutingStatus}" == "2" ]]; then
 
         removeSingBoxConfig 20_socks5_inbounds
@@ -7044,11 +7063,20 @@ removeSocks5Routing() {
 
         handleSingBox stop
     elif [[ "${unInstallSocks5RoutingStatus}" == "3" ]]; then
-        removeSingBoxConfig 20_socks5_inbounds
-        removeSingBoxConfig socks5_inbound_route
+        if [[ "${coreInstallType}" == "1" ]]; then
+            removeXrayOutbound socks5_outbound
+            unInstallRouting socks5_outbound outboundTag
+            addXrayOutbound z_direct_outbound
+        fi
 
-        removeXrayOutbound socks5_outbound
-        unInstallRouting socks5_outbound outboundTag
+        if [[ -n "${singBoxConfigPath}" ]]; then
+            removeSingBoxConfig socks5_outbound
+            removeSingBoxConfig socks5_outbound_route
+            removeSingBoxConfig 20_socks5_inbounds
+            removeSingBoxConfig socks5_inbound_route
+            addSingBoxOutbound 01_direct_outbound
+        fi
+
         handleSingBox stop
     else
         echoContent red " ---> 选择错误"
@@ -7730,7 +7758,6 @@ customXrayInstall() {
         echoContent red " ---> 请使用英文逗号分隔"
         exit 0
     fi
-
 
     if [[ "${selectCustomInstallType}" == "7" ]]; then
         selectCustomInstallType=",${selectCustomInstallType},"
@@ -9205,7 +9232,7 @@ menu() {
 	echoContent red "\n=============================================================="
 	echoContent green "原作者：mack-a"
 	echoContent green "作者：Wizard89"
-	echoContent green "当前版本：v3.0.59"
+	echoContent green "当前版本：v3.1.1"
 	echoContent green "Github：https://github.com/Wizard89/v2ray-agent"
 	echoContent green "描述：八合一共存脚本\c"
     showInstallStatus
