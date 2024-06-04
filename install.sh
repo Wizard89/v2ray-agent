@@ -7730,15 +7730,16 @@ customXrayInstall() {
         echoContent red " ---> 请使用英文逗号分隔"
         exit 0
     fi
-    if [[ "${selectCustomInstallType//,/}" =~ ^[0-5]+$ ]]; then
+
+
+    if [[ "${selectCustomInstallType}" == "7" ]]; then
+        selectCustomInstallType=",${selectCustomInstallType},"
+    else
         if ! echo "${selectCustomInstallType}" | grep -q "0,"; then
             selectCustomInstallType=",0,${selectCustomInstallType},"
         else
             selectCustomInstallType=",${selectCustomInstallType},"
         fi
-    fi
-    if [[ "${selectCustomInstallType}" == "7" ]]; then
-        selectCustomInstallType=",${selectCustomInstallType},"
     fi
 
     #    if [[ "${selectCustomInstallType: -1}" != "," ]]; then
@@ -9204,7 +9205,7 @@ menu() {
 	echoContent red "\n=============================================================="
 	echoContent green "原作者：mack-a"
 	echoContent green "作者：Wizard89"
-	echoContent green "当前版本：v3.0.58"
+	echoContent green "当前版本：v3.0.59"
 	echoContent green "Github：https://github.com/Wizard89/v2ray-agent"
 	echoContent green "描述：八合一共存脚本\c"
     showInstallStatus
