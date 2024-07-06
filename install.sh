@@ -6203,6 +6203,7 @@ ipv6Routing() {
                 removeXrayOutbound blackhole_out
                 removeXrayOutbound wireguard_out_IPv4
                 removeXrayOutbound wireguard_out_IPv6
+                removeXrayOutbound socks5_outbound
 
                 rm ${configPath}09_routing.json >/dev/null 2>&1
             fi
@@ -6731,6 +6732,7 @@ warpRoutingReg() {
                 removeXrayOutbound IPv6_out
                 removeXrayOutbound z_direct_outbound
                 removeXrayOutbound blackhole_out
+                removeXrayOutbound socks5_outbound
 
                 rm ${configPath}09_routing.json >/dev/null 2>&1
             fi
@@ -6988,6 +6990,8 @@ setSocks5OutboundRoutingAll() {
             removeXrayOutbound IPv6_out
             removeXrayOutbound z_direct_outbound
             removeXrayOutbound blackhole_out
+            removeXrayOutbound wireguard_out_IPv4
+            removeXrayOutbound wireguard_out_IPv6
 
             rm ${configPath}09_routing.json >/dev/null 2>&1
         fi
@@ -9242,7 +9246,7 @@ menu() {
 	echoContent red "\n=============================================================="
 	echoContent green "原作者：mack-a"
 	echoContent green "作者：Wizard89"
-	echoContent green "当前版本：v3.1.3"
+	echoContent green "当前版本：v3.1.4"
 	echoContent green "Github：https://github.com/Wizard89/v2ray-agent"
 	echoContent green "描述：八合一共存脚本\c"
     showInstallStatus
