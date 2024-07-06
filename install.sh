@@ -353,9 +353,17 @@ readNginxSubscribe() {
     if [[ -f "${nginxConfigPath}subscribe.conf" ]]; then
         if grep -q "sing-box" "${nginxConfigPath}subscribe.conf"; then
             subscribePort=$(grep "listen" "${nginxConfigPath}subscribe.conf" | awk '{print $2}')
-            if ! grep "listen" "${nginxConfigPath}subscribe.conf" | grep -q "ssl"; then
-                subscribeType="http"
+            subscribeDomain=$(grep "server_name" "${nginxConfigPath}subscribe.conf" | awk '{print $2}')
+            subscribeDomain=${subscribeDomain//;/}
+            if [[ "${subscribeDomain}" != "${currentHost}" ]]; then
+                subscribePort=
+                subscribeType=
+            else
+                if ! grep "listen" "${nginxConfigPath}subscribe.conf" | grep -q "ssl"; then
+                    subscribeType="http"
+                fi
             fi
+
         fi
     fi
 }
@@ -9232,7 +9240,7 @@ menu() {
 	echoContent red "\n=============================================================="
 	echoContent green "原作者：mack-a"
 	echoContent green "作者：Wizard89"
-	echoContent green "当前版本：v3.1.1"
+	echoContent green "当前版本：v3.1.2"
 	echoContent green "Github：https://github.com/Wizard89/v2ray-agent"
 	echoContent green "描述：八合一共存脚本\c"
     showInstallStatus
