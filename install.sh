@@ -8593,6 +8593,13 @@ proxy-groups:
     proxies:
       - 自动选择
       - 手动切换
+  - name: ClaudeAI
+    type: select
+    use:
+      - ${subscribeSalt}_provider
+    proxies:
+      - 自动选择
+      - 手动切换
   - name: Disney
     type: select
     use:
@@ -8722,6 +8729,12 @@ rule-providers:
     url: https://mirror.ghproxy.com/https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Clash/OpenAI/OpenAI.yaml
     path: ./ruleset/openai.yaml
     interval: 86400
+  ClaudeAI:
+    type: http
+    behavior: classical
+    url: https://mirror.ghproxy.com/https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Clash/Claude/Claude.yaml
+    path: ./ruleset/claudeai.yaml
+    interval: 86400
   Bing:
     type: http
     behavior: classical
@@ -8768,6 +8781,7 @@ rules:
   - RULE-SET,HBO,HBO
   - RULE-SET,Bing,Bing
   - RULE-SET,OpenAI,OpenAI
+  - RULE-SET,ClaudeAI,ClaudeAI
   - RULE-SET,Disney,Disney
   - RULE-SET,proxy,全球代理
   - RULE-SET,gfw,全球代理
@@ -9427,7 +9441,7 @@ menu() {
 	echoContent red "\n=============================================================="
 	echoContent green "原作者：mack-a"
 	echoContent green "作者：Wizard89"
-	echoContent green "当前版本：v3.1.7"
+	echoContent green "当前版本：v3.1.8"
 	echoContent green "Github：https://github.com/Wizard89/v2ray-agent"
 	echoContent green "描述：八合一共存脚本\c"
     showInstallStatus
