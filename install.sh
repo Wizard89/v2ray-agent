@@ -2064,7 +2064,7 @@ updateSELinuxHTTPPortT() {
 # 操作Nginx
 handleNginx() {
 
-    if [[ -z $(pgrep -f "nginx") ]] && [[ "$1" == "start" ]]; then
+    if ! echo "${selectCustomInstallType}" | grep -qwE ",7,|,8,|,7,8," && [[ -z $(pgrep -f "nginx") ]] && [[ "$1" == "start" ]]; then
         if [[ "${release}" == "alpine" ]]; then
             rc-service nginx start 2>/etc/v2ray-agent/nginx_error.log
         else
@@ -5884,7 +5884,8 @@ unInstall() {
     rm -rf /etc/v2ray-agent
     rm -rf ${nginxConfigPath}alone.conf
     rm -rf ${nginxConfigPath}checkPortOpen.conf >/dev/null 2>&1
-    rm -rf ${nginxConfigPath}subscribe.conf >/dev/null 2>&1
+    unInstallSubscribe
+    #    rm -rf ${nginxConfigPath}subscribe.conf >/dev/null 2>&1
 
     if [[ -d "${nginxStaticPath}" && -f "${nginxStaticPath}/check" ]]; then
         rm -rf "${nginxStaticPath}*"
@@ -8049,6 +8050,7 @@ customSingBoxInstall() {
         handleSingBox start
         # 生成账号
         checkGFWStatue 8
+        unInstallSubscribe
         showAccounts 9
     else
         echoContent red " ---> 输入不合法"
@@ -8148,6 +8150,7 @@ customXrayInstall() {
         handleXray start
         # 生成账号
         checkGFWStatue 11
+        unInstallSubscribe
         showAccounts 12
     else
         echoContent red " ---> 输入不合法"
@@ -8226,6 +8229,7 @@ xrayCoreInstall() {
     handleNginx start
     # 生成账号
     checkGFWStatue 11
+    unInstallSubscribe
     showAccounts 12
 }
 
@@ -8265,9 +8269,8 @@ singBoxInstall() {
     handleSingBox stop
     sleep 2
     handleSingBox start
-
+    unInstallSubscribe
     # 生成账号
-    #    checkGFWStatue 12
     showAccounts 9
 }
 
@@ -8946,7 +8949,7 @@ subscribe() {
 
         echoContent skyBlue "-------------------------备注---------------------------------"
         echoContent yellow "# 查看订阅会重新生成本地账号的订阅"
-        # echoContent yellow "# 添加账号或者修改账号需要重新查看订阅才会重新生成对外访问的订阅内容"
+        #        echoContent yellow "# 添加账号或者修改账号需要重新查看订阅才会重新生成对外访问的订阅内容"
         echoContent red "# 需要手动输入md5加密的salt值，如果不了解使用随机即可"
         echoContent yellow "# 不影响已添加的远程订阅的内容\n"
 
@@ -9396,6 +9399,7 @@ xrayCoreRealityInstall() {
     sleep 2
     # 启动
     handleXray start
+    unInstallSubscribe
     # 生成账号
     showAccounts 8
 }
@@ -9627,7 +9631,7 @@ menu() {
 	echoContent red "\n=============================================================="
 	echoContent green "原作者：mack-a"
 	echoContent green "作者：Wizard89"
-	echoContent green "当前版本：v3.1.14"
+	echoContent green "当前版本：v3.1.15"
 	echoContent green "Github：https://github.com/Wizard89/v2ray-agent"
 	echoContent green "描述：八合一共存脚本\c"
     showInstallStatus
