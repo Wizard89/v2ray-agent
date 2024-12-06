@@ -5656,12 +5656,12 @@ checkNginx302() {
     local domain302Status=
     domain302Status=$(curl -s "https://${currentHost}:${currentPort}")
     if echo "${domain302Status}" | grep -q "302"; then
-        local domain302Result=
-        domain302Result=$(curl -L -s "https://${currentHost}:${currentPort}")
-        if [[ -n "${domain302Result}" ]]; then
-            echoContent green " ---> 302重定向设置成功"
-            exit 0
-        fi
+        #        local domain302Result=
+        #        domain302Result=$(curl -L -s "https://${currentHost}:${currentPort}")
+        #        if [[ -n "${domain302Result}" ]]; then
+        echoContent green " ---> 302重定向设置完毕"
+        exit 0
+        #        fi
     fi
     echoContent red " ---> 302重定向设置失败，请仔细检查是否和示例相同"
     backupNginxConfig restoreBackup
@@ -9715,7 +9715,7 @@ menu() {
 	echoContent red "\n=============================================================="
 	echoContent green "原作者：mack-a"
 	echoContent green "作者：Wizard89"
-	echoContent green "当前版本：v3.1.18"
+	echoContent green "当前版本：v3.1.19"
 	echoContent green "Github：https://github.com/Wizard89/v2ray-agent"
 	echoContent green "描述：八合一共存脚本\c"
     showInstallStatus
