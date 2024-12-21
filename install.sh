@@ -489,6 +489,9 @@ readInstallProtocolType() {
                 xrayVLESSRealityServerName=$(jq -r .inbounds[0].streamSettings.realitySettings.serverNames[0] "${row}.json")
                 realityServerName=${xrayVLESSRealityServerName}
                 xrayVLESSRealityPort=$(jq -r .inbounds[0].port "${row}.json")
+
+                realityDomainPort=$(jq -r .inbounds[0].streamSettings.realitySettings.dest "${row}.json"|awk -F '[:]' '{print $2}')
+
                 currentRealityPublicKey=$(jq -r .inbounds[0].streamSettings.realitySettings.publicKey "${row}.json")
                 currentRealityPrivateKey=$(jq -r .inbounds[0].streamSettings.realitySettings.privateKey "${row}.json")
 
@@ -7275,7 +7278,7 @@ socks5Routing() {
     echoContent red "# 注意事项"
     echoContent yellow "# 流量明文访问"
 
-    echoContent yellow "# 只能用于不会被阻断访问的网络环境下的不同机器之间的流量转发，请不要用于代理访问"
+    echoContent yellow "# 仅限正常网络环境下设备间流量转发，禁止用于代理访问。"
     echoContent yellow "# 使用教程"
 
     echoContent yellow "1.Socks5出站"
@@ -9715,7 +9718,7 @@ menu() {
 	echoContent red "\n=============================================================="
 	echoContent green "原作者：mack-a"
 	echoContent green "作者：Wizard89"
-	echoContent green "当前版本：v3.1.19"
+	echoContent green "当前版本：v3.1.20"
 	echoContent green "Github：https://github.com/Wizard89/v2ray-agent"
 	echoContent green "描述：八合一共存脚本\c"
     showInstallStatus
