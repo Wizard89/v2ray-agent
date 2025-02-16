@@ -1136,10 +1136,12 @@ installTools() {
 
     if ! find /usr/bin /usr/sbin | grep -q -w dig; then
         echoContent green " ---> 安装dig"
-        if echo "${installType}" | grep -q -w "apt"; then
+        if echo "${installType}" | grep -qw "apt"; then
             ${installType} dnsutils >/dev/null 2>&1
-        elif echo "${installType}" | grep -qwE "yum|apk"; then
+        elif echo "${installType}" | grep -qw "yum"; then
             ${installType} bind-utils >/dev/null 2>&1
+        elif echo "${installType}" | grep -qw "apk"; then
+            ${installType} bind-tools >/dev/null 2>&1
         fi
     fi
 
@@ -2727,30 +2729,27 @@ EOF
 # 安装alpine开机启动
 installAlpineStartup() {
     local serviceName=$1
-    local startCommand=$2
-
-    cat <<EOF >"/etc/init.d/${serviceName}"
-#!/bin/sh
-case "\$1" in
-  start)
-    echo "Starting ${serviceName}"
-    ${startCommand} >/dev/null 2>&1 &
-    ;;
-  stop)
-    echo "Stopping ${serviceName}"
-    pgrep -f ${serviceName}|xargs kill -9 >/dev/null 2>&1
-    ;;
-  restart)
-    rc-service ${serviceName} stop
-    rc-service ${serviceName} start
-    ;;
-  *)
-    echo "Usage: rc-service ${serviceName} {start|stop|restart}"
-    exit 1
-    ;;
-esac
-exit 0
+    if [[ "${serviceName}" == "sing-box" ]]; then
+        cat <<EOF >"/etc/init.d/${serviceName}"
+#!/sbin/openrc-run
+description="sing-box service"
+command="/etc/v2ray-agent/sing-box/sing-box"
+command_args="run -c /etc/v2ray-agent/sing-box/conf/config.json"
+command_background=true
+pidfile="/var/run/sing-box.pid"
 EOF
+    elif [[ "${serviceName}" == "xray" ]]; then
+        cat <<EOF >"/etc/init.d/${serviceName}"
+#!/sbin/openrc-run
+
+description="xray service"
+command="/etc/v2ray-agent/xray/xray"
+command_args="run -confdir /etc/v2ray-agent/xray/conf"
+command_background=true
+pidfile="/var/run/xray.pid"
+EOF
+    fi
+    
     chmod +x "/etc/init.d/${serviceName}"
 }
 
@@ -2785,7 +2784,7 @@ WantedBy=multi-user.target
 EOF
         bootStartup "sing-box.service"
     elif [[ "${release}" == "alpine" ]]; then
-        installAlpineStartup "sing-box" "${execStart}"
+        installAlpineStartup "sing-box"
         bootStartup "sing-box"
     fi
 
@@ -2817,7 +2816,7 @@ EOF
         bootStartup "xray.service"
         echoContent green " ---> 配置Xray开机自启成功"
     elif [[ "${release}" == "alpine" ]]; then
-        installAlpineStartup "xray" "${execStart}"
+        installAlpineStartup "xray"
         bootStartup "xray"
     fi
 }
@@ -4670,7 +4669,7 @@ EOF
         echoContent skyBlue "\n开始配置VMess+ws协议端口"
         echo
         mapfile -t result < <(initSingBoxPort "${singBoxVMessWSPort}")
-        echoContent green "\n ---> VLESS_Vision端口：${result[-1]}"
+        echoContent green "\n ---> VMess_ws端口：${result[-1]}"
 
         checkDNSIP "${domain}"
         removeNginxDefaultConf
@@ -9751,7 +9750,7 @@ menu() {
 	echoContent red "\n=============================================================="
 	echoContent green "原作者：mack-a"
 	echoContent green "作者：Wizard89"
-	echoContent green "当前版本：v3.1.30"
+	echoContent green "当前版本：v3.1.31"
 	echoContent green "Github：https://github.com/Wizard89/v2ray-agent"
 	echoContent green "描述：八合一共存脚本\c"
     showInstallStatus
