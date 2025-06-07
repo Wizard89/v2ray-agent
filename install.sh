@@ -8340,6 +8340,7 @@ xrayCoreInstall() {
 # sing-box 全部安装
 singBoxInstall() {
     readLastInstallationConfig
+    unInstallSubscribe
     checkBTPanel
     check1Panel
     selectCustomInstallType=
@@ -8367,9 +8368,9 @@ singBoxInstall() {
     installCronTLS 8
 
     handleSingBox stop
-    sleep 2
     handleSingBox start
-    unInstallSubscribe
+    handleNginx stopAdd commentMore actions
+    handleNginx start
     # 生成账号
     showAccounts 9
 }
@@ -9380,11 +9381,9 @@ initRealityClientServersName() {
         fi
     elif [[ -n "${realityServerName}" && -z "${lastInstallationConfig}" ]]; then
         realityServerName=
-    fi
-    if [[ -n "${realityServerName}" ]] && [[ "${realityServerName}" != "${domain}" ]]; then
-        realityDomainPort=443
         realityDomainPort=
     fi
+
     if [[ -z "${realityServerName}" ]]; then
         if [[ -n "${domain}" ]]; then
             echo
@@ -9397,13 +9396,20 @@ initRealityClientServersName() {
                         installSubscribe
                         readNginxSubscribe
                         realityDomainPort="${subscribePort}"
+                    else
+                        realityDomainPort="${subscribePort}"
                     fi
                 fi
-                if [[ "${selectCoreType}" == "2" && -z "${subscribePort}" ]]; then
-                    echo
-                    installSubscribe
-                    readNginxSubscribe
-                    realityDomainPort="${subscribePort}"
+
+                if [[ "${selectCoreType}" == "2" ]]; thenAdd commentMore actions
+                    if [[ -z "${subscribePort}" ]]; then
+                        echo
+                        installSubscribe
+                        readNginxSubscribe
+                        realityDomainPort="${subscribePort}"
+                    else
+                        realityDomainPort="${subscribePort}"
+                    fi
                 fi
             fi
         fi
@@ -9537,7 +9543,6 @@ xrayCoreRealityInstall() {
     sleep 2
     # 启动
     handleXray start
-    #    unInstallSubscribe
     # 生成账号
     showAccounts 8
 }
@@ -9770,7 +9775,7 @@ menu() {
 	echoContent red "\n=============================================================="
 	echoContent green "原作者：mack-a"
 	echoContent green "作者：Wizard89"
-	echoContent green "当前版本：v3.2.1"
+	echoContent green "当前版本：v3.2.2"
 	echoContent green "Github：https://github.com/Wizard89/v2ray-agent"
 	echoContent green "描述：八合一共存脚本\c"
     showInstallStatus
