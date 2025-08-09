@@ -1078,6 +1078,8 @@ installTools() {
     if ! find /usr/bin /usr/sbin | grep -q -w netfilter-persistent; then
         if [[ "${release}" != "centos" ]]; then
             echoContent green " ---> 安装iptables"
+            echo "iptables-persistent iptables-persistent/autosave_v4 boolean true" | sudo debconf-set-selections
+            echo "iptables-persistent iptables-persistent/autosave_v6 boolean true" | sudo debconf-set-selections
             ${installType} iptables-persistent >/dev/null 2>&1
         fi
     fi
@@ -9797,7 +9799,7 @@ menu() {
 	echoContent red "\n=============================================================="
 	echoContent green "原作者：mack-a"
 	echoContent green "作者：Wizard89"
-	echoContent green "当前版本：v3.2.12"
+	echoContent green "当前版本：v3.2.13"
 	echoContent green "Github：https://github.com/Wizard89/v2ray-agent"
 	echoContent green "描述：八合一共存脚本\c"
     showInstallStatus
