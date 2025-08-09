@@ -58,6 +58,12 @@ checkSystem() {
         removeType='yum -y remove'
         upgrade="yum update -y --skip-broken"
         checkCentosSELinux
+    elif { [[ -f "/etc/issue" ]] && grep -qi "Alpine" /etc/issue; } || { [[ -f "/proc/version" ]] && grep -qi "Alpine" /proc/version; }; then
+        release="alpine"
+        installType='apk add'
+        upgrade="apk update"
+        removeType='apk del'
+        nginxConfigPath=/etc/nginx/http.d/
     elif { [[ -f "/etc/issue" ]] && grep -qi "debian" /etc/issue; } || { [[ -f "/proc/version" ]] && grep -qi "debian" /proc/version; } || { [[ -f "/etc/os-release" ]] && grep -qi "ID=debian" /etc/issue; }; then
         release="debian"
         installType='apt -y install'
@@ -74,12 +80,6 @@ checkSystem() {
         if grep </etc/issue -q -i "16."; then
             release=
         fi
-    elif { [[ -f "/etc/issue" ]] && grep -qi "Alpine" /etc/issue; } || { [[ -f "/proc/version" ]] && grep -qi "Alpine" /proc/version; }; then
-        release="alpine"
-        installType='apk add'
-        upgrade="apk update"
-        removeType='apk del'
-        nginxConfigPath=/etc/nginx/http.d/
     fi
 
     if [[ -z ${release} ]]; then
@@ -1107,6 +1107,11 @@ installTools() {
     if ! find /usr/bin /usr/sbin | grep -q -w binutils; then
         echoContent green " ---> 安装binutils"
         ${installType} binutils >/dev/null 2>&1
+    fi
+
+    if ! find /usr/bin /usr/sbin | grep -q -w openssl; then
+        echoContent green " ---> 安装openssl"
+        ${installType} openssl >/dev/null 2>&1
     fi
 
     if ! find /usr/bin /usr/sbin | grep -q -w ping6; then
@@ -9701,7 +9706,7 @@ menu() {
 	echoContent red "\n=============================================================="
 	echoContent green "原作者：mack-a"
 	echoContent green "作者：Wizard89"
-	echoContent green "当前版本：v3.2.9"
+	echoContent green "当前版本：v3.2.10"
 	echoContent green "Github：https://github.com/Wizard89/v2ray-agent"
 	echoContent green "描述：八合一共存脚本\c"
     showInstallStatus
