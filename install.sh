@@ -7260,7 +7260,7 @@ unInstallWireGuard() {
     fi
 
     if [[ -n "${singBoxConfigPath}" ]]; then
-        if [[ ! -f "${singBoxConfigPath}wireguard_out_IPv6_route.json" && ! -f "${singBoxConfigPath}wireguard_out_IPv4_route.json" ]]; then
+        if [[ ! -f "${singBoxConfigPath}wireguard_endpoints_IPv6_route.json" && ! -f "${singBoxConfigPath}wireguard_endpoints_IPv4_route.json" ]]; then
             rm "${singBoxConfigPath}wireguard_outbound.json" >/dev/null 2>&1
             rm -rf /etc/v2ray-agent/warp/config >/dev/null 2>&1
         fi
@@ -7281,7 +7281,7 @@ removeWireGuardRoute() {
 
     # sing-box
     if [[ -n "${singBoxConfigPath}" ]]; then
-        removeSingBoxRouteRule "wireguard_out_${type}"
+        removeSingBoxRouteRule "wireguard_endpoints_${type}"
     fi
 
     unInstallWireGuard "${type}"
@@ -9944,7 +9944,7 @@ menu() {
 	echoContent red "\n=============================================================="
 	echoContent green "原作者：mack-a"
 	echoContent green "作者：Wizard89"
-	echoContent green "当前版本：v3.2.19"
+	echoContent green "当前版本：v3.2.20"
 	echoContent green "Github：https://github.com/Wizard89/v2ray-agent"
 	echoContent green "描述：八合一共存脚本\c"
     showInstallStatus

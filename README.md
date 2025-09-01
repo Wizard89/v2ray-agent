@@ -1,6 +1,7 @@
 # Xray-core/sing-box 一键脚本快速安装
 
 - [感谢 JetBrains 提供的非商业开源软件开发授权](https://www.jetbrains.com/?from=v2ray-agent)
+
 [![License: AGPL v3](https://img.shields.io/badge/License-AGPL%20v3-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)
 
 [![English Version](https://img.shields.io/badge/English-Version-blue)](documents/en/README_EN.md)
@@ -112,7 +113,7 @@
 - Latest Version【推荐】
 
 ```
-bash wget -P /root -N --no-check-certificate "https://raw.githubusercontent.com/Wizard89/v2ray-agent/master/install.sh" && chmod 700 /root/install.sh && /root/install.sh
+wget -P /root -N --no-check-certificate "https://raw.githubusercontent.com/Wizard89/v2ray-agent/master/install.sh" && chmod 700 /root/install.sh && /root/install.sh
 ```
 
 # 示例图
