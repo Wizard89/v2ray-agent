@@ -1,9 +1,9 @@
 # Xray-core/sing-box 一键脚本快速安装
 
 - [感谢 JetBrains 提供的非商业开源软件开发授权](https://www.jetbrains.com/?from=v2ray-agent)
-- [Thanks for non-commercial open source development authorization by JetBrains](https://www.jetbrains.com/?from=v2ray-agent)
+[![License: AGPL v3](https://img.shields.io/badge/License-AGPL%20v3-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)
 
-- [English Version](https://github.com/Wizard89/v2ray-agent/blob/master/documents/en/README_EN.md)
+[![English Version](https://img.shields.io/badge/English-Version-blue)](documents/en/README_EN.md)
 
 - [Cloudflare 优化方案](https://github.com/Wizard89/v2ray-agent/blob/master/documents/optimize_V2Ray.md)
 - [流量中转](https://github.com/Wizard89/v2ray-agent/blob/master/documents/traffic_relay.md)
@@ -112,7 +112,7 @@
 - Latest Version【推荐】
 
 ```
-wget -P /root -N --no-check-certificate "https://raw.githubusercontent.com/Wizard89/v2ray-agent/master/install.sh" && chmod 700 /root/install.sh && /root/install.sh
+bash wget -P /root -N --no-check-certificate "https://raw.githubusercontent.com/Wizard89/v2ray-agent/master/install.sh" && chmod 700 /root/install.sh && /root/install.sh
 ```
 
 # 示例图
@@ -127,7 +127,7 @@ wget -P /root -N --no-check-certificate "https://raw.githubusercontent.com/Wizar
 
 # 许可证
 
-[AGPL-3.0](https://github.com/Wizard89/v2ray-agent/blob/master/LICENSE)
+本项根据 [AGPL-3.0 许可证](LICENSE) 授权.
 
 ## Stargazers over time
 

@@ -2,6 +2,11 @@
 
 > [Chinese Version](https://github.com/Wizard89/v2ray-agent/blob/master/README.md)
 
+- [Thanks to JetBrains for providing non-commercial open source software development authorization](https://www.jetbrains.com/?from=v2ray-agent)
+
+[![License: AGPL v3](https://img.shields.io/badge/License-AGPL%20v3-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)
+[![English Version](https://img.shields.io/badge/English-Version-blue)](documents/en/README_EN.md)
+
 - [Cloudflare Optimization Solution](https://github.com/Wizard89/v2ray-agent/blob/master/documents/optimize_V2Ray.md)
 - [Traffic Relay](https://github.com/Wizard89/v2ray-agent/blob/master/documents/traffic_relay.md)
 - [manual self-build tutorial](https://github.com/Wizard89/v2ray-agent/blob/master/documents/Cloudflare_install_manual.md)
@@ -87,7 +92,7 @@
 - Latest Version [recommended]
 
 ``` 
-wget -P/root -N --no-check-certificate "https://raw.githubusercontent.com/Wizard89/v2ray-agent/master/shell/install_en.sh" && mv /root/install_en.sh /root/install.sh && chmod 700 /root/install.sh &&/root/install.sh
+bash wget -P/root -N --no-check-certificate "https://raw.githubusercontent.com/Wizard89/v2ray-agent/master/shell/install_en.sh" && mv /root/install_en.sh /root/install.sh && chmod 700 /root/install.sh &&/root/install.sh
 ``` 
 
 
@@ -103,7 +108,7 @@ wget -P/root -N --no-check-certificate "https://raw.githubusercontent.com/Wizard
 
 # licence
 
-[AGPL-3.0](https://github.com/Wizard89/v2ray-agent/blob/master/LICENSE)
+This project is licensed under the [AGPL-3.0 License](LICENSE).
 
 ## Stargazers over time
 
