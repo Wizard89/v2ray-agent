@@ -9513,6 +9513,8 @@ initRealityMldsa65() {
             fi
             #    echoContent green "\n Seed:${realityMldsa65Seed}"
             #    echoContent green "\n Verify:${realityMldsa65Verify}"
+        else
+            echoContent green " 目标域名支持X25519MLKEM768，但是证书的长度不足，忽略ML-DSA-65。"
         fi
     else
         echoContent green " 目标域名不支持X25519MLKEM768，忽略ML-DSA-65。"
@@ -9945,7 +9947,7 @@ menu() {
 	echoContent red "\n=============================================================="
 	echoContent green "原作者：mack-a"
 	echoContent green "作者：Wizard89"
-	echoContent green "当前版本：v3.2.23"
+	echoContent green "当前版本：v3.2.24"
 	echoContent green "Github：https://github.com/Wizard89/v2ray-agent"
 	echoContent green "描述：八合一共存脚本\c"
     showInstallStatus
