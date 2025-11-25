@@ -2259,7 +2259,7 @@ renewalTLS() {
             if [[ "${coreInstallType}" == "1" ]]; then
                 handleXray stop
             elif [[ "${coreInstallType}" == "2" ]]; then
-                handleV2Ray stop
+                handleSingBox stop
             fi
 
             sudo "$HOME/.acme.sh/acme.sh" --cron --home "$HOME/.acme.sh"
@@ -6066,6 +6066,14 @@ addUser() {
             clients=$(jq -r "${userConfig} = ${clients}" ${configPath}11_VMess_HTTPUpgrade_inbounds.json)
             echo "${clients}" | jq . >${configPath}11_VMess_HTTPUpgrade_inbounds.json
         fi
+        # anytls
+        if echo "${currentInstallProtocolType}" | grep -q ",13,"; then
+            local clients=
+            clients=$(initSingBoxClients 13 "${uuid}" "${email}")
+
+            clients=$(jq -r "${userConfig} = ${clients}" ${configPath}13_anytls_inbounds.json)
+            echo "${clients}" | jq . >${configPath}13_anytls_inbounds.json
+        fi
     done
     reloadCore
     echoContent green " ---> 添加完成"
@@ -9494,7 +9502,7 @@ menu() {
 	echoContent red "\n=============================================================="
 	echoContent green "原作者：mack-a"
 	echoContent green "作者：Wizard89"
-	echoContent green "当前版本：v3.2.29"
+	echoContent green "当前版本：v3.2.30"
 	echoContent green "Github：https://github.com/Wizard89/v2ray-agent"
 	echoContent green "描述：八合一共存脚本\c"
     showInstallStatus
