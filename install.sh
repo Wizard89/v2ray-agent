@@ -34,7 +34,7 @@ echoContent() {
 }
 # 检查SELinux状态
 checkCentosSELinux() {
-    if command -v getenforce >/dev/null 2>&1 && [ "$(getenforce)" == "Enforcing" ]"; then
+    if command -v getenforce >/dev/null 2>&1 && [ "$(getenforce)" == "Enforcing" ]; then
         echoContent yellow "# 注意事项"
         echoContent yellow "检测到SELinux已开启，请手动关闭，教程如下"
         echoContent yellow "https://www.v2ray-agent.com/archives/1684115970026#centos-%E5%85%B3%E9%97%ADselinux"
@@ -9551,7 +9551,7 @@ menu() {
 	echoContent red "\n=============================================================="
 	echoContent green "原作者：mack-a"
 	echoContent green "作者：Wizard89"
-	echoContent green "当前版本：v3.2.38"
+	echoContent green "当前版本：v3.2.39"
 	echoContent green "Github：https://github.com/Wizard89/v2ray-agent"
 	echoContent green "描述：八合一共存脚本\c"
     showInstallStatus
