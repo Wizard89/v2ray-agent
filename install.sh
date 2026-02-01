@@ -34,10 +34,10 @@ echoContent() {
 }
 # 检查SELinux状态
 checkCentosSELinux() {
-    if [[ -f "/etc/selinux/config" ]] && ! grep -q "SELINUX=disabled" <"/etc/selinux/config"; then
+    if command -v getenforce >/dev/null 2>&1 && [ "$(getenforce)" == "Enforcing" ]"; then
         echoContent yellow "# 注意事项"
         echoContent yellow "检测到SELinux已开启，请手动关闭，教程如下"
-        echoContent yellow "https://www.v2ray-agent.com/archives/1684115970026#centos7-%E5%85%B3%E9%97%ADselinux"
+        echoContent yellow "https://www.v2ray-agent.com/archives/1684115970026#centos-%E5%85%B3%E9%97%ADselinux"
         exit 0
     fi
 }
@@ -56,7 +56,7 @@ checkSystem() {
         release="centos"
         installType='yum -y install'
         removeType='yum -y remove'
-        upgrade="yum update -y --skip-broken"
+        #        upgrade="yum update -y --skip-broken"
         checkCentosSELinux
     elif { [[ -f "/etc/issue" ]] && grep -qi "Alpine" /etc/issue; } || { [[ -f "/proc/version" ]] && grep -qi "Alpine" /proc/version; }; then
         release="alpine"
@@ -698,7 +698,7 @@ allowPort() {
         type=tcp
     fi
     # 如果防火墙启动状态则添加相应的开放端口
-    if dpkg -l | grep -q "^[[:space:]]*ii[[:space:]]\+ufw"; then
+    if command -v dpkg >/dev/null 2>&1 && dpkg -l | grep -q "^[[:space:]]*ii[[:space:]]\+ufw"; then
         if ufw status | grep -q "Status: active"; then
             if ! ufw status | grep -q "$1/${type}"; then
                 sudo ufw allow "$1/${type}"
@@ -1091,7 +1091,10 @@ installTools() {
 
     echoContent green " ---> 检查、安装更新【新机器会很慢，如长时间无反应，请手动停止后重新执行】"
 
-    ${upgrade} >/etc/v2ray-agent/install.log 2>&1
+    if [[ "${release}" != "centos" ]]; then
+        ${upgrade} >/etc/v2ray-agent/install.log 2>&1
+    fi
+
     if grep <"/etc/v2ray-agent/install.log" -q "changed"; then
         ${updateReleaseInfoChange} >/dev/null 2>&1
     fi
@@ -1223,28 +1226,25 @@ installTools() {
         fi
     fi
 
-    if ! command -v semanage >/dev/null 2>&1; then
-        echoContent green " ---> 安装semanage"
-        ${installType} bash-completion >/dev/null 2>&1
 
-        if [[ "${centosVersion}" == "7" ]]; then
-            policyCoreUtils="policycoreutils-python"
-        elif [[ "${centosVersion}" == "8" || "${release}" == "ubuntu" || "${release}" == "debian" ]]; then
-            policyCoreUtils="policycoreutils-python-utils"
-        fi
-
-        if [[ -n "${policyCoreUtils}" ]]; then
-            ${installType} ${policyCoreUtils} >/dev/null 2>&1
-        fi
-        if [[ -n $(which semanage) ]]; then
-            if command -v getenforce >/dev/null 2>&1; then
-                selinux_status=$(getenforce)
-                if [ "$selinux_status" != "Disabled" ]; then
-                    semanage port -a -t http_port_t -p tcp 31300
-                fi
-            fi
-        fi
-    fi
+    #    if ! command -v semanage >/dev/null 2>&1 && [[ "${release}" == "centos" ]]; then
+    #        if command -v getenforce >/dev/null 2>&1 && [ "$(getenforce)" == "Enforcing" ]; then
+    #            if [[ "${centosVersion}" == "7" ]]; then
+    #                policyCoreUtils="policycoreutils-python"
+    #            elif [[ "${centosVersion}" == "8" || "${centosVersion}" == "9" || "${centosVersion}" == "10" ]]; then
+    #                policyCoreUtils="policycoreutils-python-utils"
+    #            fi
+    #            echoContent green " ---> 安装semanage"
+    #
+    #            if [[ -n "${policyCoreUtils}" ]]; then
+    #                ${installType} bash-completion >/dev/null 2>&1
+    #                ${installType} ${policyCoreUtils} >/dev/null 2>&1
+    #            fi
+    #            if [[ -n $(which semanage) ]]; then
+    #                semanage port -a -t http_port_t -p tcp 31300
+    #            fi
+    #        fi
+    #    fi
 
     if [[ "${selectCustomInstallType}" == "7" ]]; then
         echoContent green " ---> 检测到无需依赖证书的服务，跳过安装"
@@ -4184,10 +4184,6 @@ EOF
         "clients": $(initXrayClients 7),
         "decryption": "none",
         "fallbacks":[
-          {
-            "dest": "31305",
-            "xver": 1
-          }
         ]
       },
       "streamSettings": {
@@ -9555,7 +9551,7 @@ menu() {
 	echoContent red "\n=============================================================="
 	echoContent green "原作者：mack-a"
 	echoContent green "作者：Wizard89"
-	echoContent green "当前版本：v3.2.37"
+	echoContent green "当前版本：v3.2.38"
 	echoContent green "Github：https://github.com/Wizard89/v2ray-agent"
 	echoContent green "描述：八合一共存脚本\c"
     showInstallStatus
