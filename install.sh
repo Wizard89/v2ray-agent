@@ -2304,7 +2304,11 @@ installSingBox() {
 
     if [[ ! -f "/etc/v2ray-agent/sing-box/sing-box" ]]; then
 
-        version=$(curl -s "https://api.github.com/repos/SagerNet/sing-box/releases?per_page=20" | jq -r ".[]|select (.prerelease==${prereleaseStatus})|.tag_name" | head -1)
+        if [[ "${prereleaseStatus}" == "true" ]]; then
+            version=$(curl -s "https://api.github.com/repos/SagerNet/sing-box/releases?per_page=20" | jq -r ".[]|select (.prerelease==${prereleaseStatus})|.tag_name" | head -1)
+        else
+            version=$(curl -s https://api.github.com/repos/SagerNet/sing-box/releases/latest | jq -r .tag_name)
+        fi
 
         echoContent green " ---> 最新版本:${version}"
 
@@ -2363,8 +2367,12 @@ installXray() {
     echoContent skyBlue "\n进度  $1/${totalProgress} : 安装Xray"
 
     if [[ ! -f "/etc/v2ray-agent/xray/xray" ]]; then
+        if [[ "${prereleaseStatus}" == "true" ]]; then
+            version=$(curl -s "https://api.github.com/repos/XTLS/Xray-core/releases?per_page=5" | jq -r ".[]|select (.prerelease==${prereleaseStatus})|.tag_name" | head -1)
+        else
+            version=$(curl -s https://api.github.com/repos/XTLS/Xray-core/releases/latest | jq -r .tag_name)
+        fi
 
-        version=$(curl -s "https://api.github.com/repos/XTLS/Xray-core/releases?per_page=5" | jq -r ".[]|select (.prerelease==${prereleaseStatus})|.tag_name" | head -1)
         echoContent green " ---> Xray-core版本:${version}"
         if [[ "${release}" == "alpine" ]]; then
             wget -c -q -P /etc/v2ray-agent/xray/ "https://github.com/XTLS/Xray-core/releases/download/${version}/${xrayCoreCPUVendor}.zip"
@@ -9985,7 +9993,7 @@ menu() {
 	echoContent red "\n=============================================================="
 	echoContent green "原作者：mack-a"
 	echoContent green "作者：Wizard89"
-	echoContent green "当前版本：v3.3.11"
+	echoContent green "当前版本：v3.3.12"
 	echoContent green "Github：https://github.com/Wizard89/v2ray-agent"
 	echoContent green "描述：八合一共存脚本\c"
     showInstallStatus
