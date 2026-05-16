@@ -9243,7 +9243,7 @@ initRealityKey() {
                 realityX25519Key=$(/etc/v2ray-agent/xray/xray x25519)
             fi
             realityPrivateKey=$(echo "${realityX25519Key}" | grep "PrivateKey" | awk '{print $2}')
-            realityPublicKey=$(echo "${realityX25519Key}" | grep "Password" | awk '{print $2}')
+            realityPublicKey=$(echo "${realityX25519Key}" | grep "Password" | awk '{print $3}')
             if [[ -z "${realityPrivateKey}" ]]; then
                 echoContent red "输入的Private Key不合法"
                 initRealityKey
@@ -9656,7 +9656,7 @@ menu() {
 	echoContent red "\n=============================================================="
 	echoContent green "原作者：mack-a"
 	echoContent green "作者：Wizard89"
-	echoContent green "当前版本：v3.3.7"
+	echoContent green "当前版本：v3.3.8"
 	echoContent green "Github：https://github.com/Wizard89/v2ray-agent"
 	echoContent green "描述：八合一共存脚本\c"
     showInstallStatus
