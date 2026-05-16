@@ -25,7 +25,7 @@
 - [1.脚本安装](#1vlesstcptlsvlesswstlsvmesstcptlsvmesswstlstrojan-伪装站点-八合一共存脚本)
     - [特性](#特性)
     - [注意事项](#注意事项)
-    - [安装脚本](#安装脚本)
+    - [安装脚本版](#安装脚本版)
 
 * * *
 
@@ -73,6 +73,37 @@
 - 支持核心的升级以及回退
 - 支持自主更换伪装站点
 - 支持BT下载管理以及域名黑名单管理
+
+## 快速开始
+
+### 安装脚本版
+
+```
+wget -P /root -N --no-check-certificate "https://raw.githubusercontent.com/Wizard89/v2ray-agent/master/install.sh" && chmod 700 /root/install.sh && /root/install.sh
+```
+
+### 使用
+
+安装后，运行以下命令可再次打开管理菜单:
+
+```
+vasma
+```
+### 安装Docker版
+```
+wget -P /root -N --no-check-certificate "https://raw.githubusercontent.com/Wizard89/v2ray-agent/master/shell/docker_reality.sh" && chmod 700 /root/docker_reality.sh && /root/docker_reality.sh
+```
+
+### 使用 
+
+* [Docker Reality 使用说明]
+ 
+安装后，运行以下命令可再次打开管理菜单:
+
+```
+vasmad
+```
+
 
 ## 线路推荐
 
