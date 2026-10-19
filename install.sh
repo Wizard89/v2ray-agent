@@ -6901,7 +6901,7 @@ getDLCGeositeName() {
     fi
 
     local normalizedInput
-    matchedLine=$(grep -n -m1 -E "^[[:space:]]*-[[:space:]]*name:[[:space:]]*\"?${escapedInput}\"?[[:space:]]*$" "${dlcFilePath}")
+    normalizedInput=$(echo "${inputRule}" | tr '[:upper:]' '[:lower:]' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
     normalizedInput=${normalizedInput#domain:}
     normalizedInput=${normalizedInput#full:}
     normalizedInput=${normalizedInput#keyword:}
@@ -6924,7 +6924,7 @@ getDLCGeositeName() {
     escapedInput=$(escapeDLCRegexPattern "${normalizedInput}")
 
     local matchedLine=
-    matchedLine=$(grep -n -m1 -E "^[[:space:]]*-[[:space:]]*name:[[:space:]]*${escapedInput}[[:space:]]*$" "${dlcFilePath}")
+    matchedLine=$(grep -n -m1 -E "^[[:space:]]*-[[:space:]]*name:[[:space:]]*\"?${escapedInput}\"?[[:space:]]*$" "${dlcFilePath}")
     if [[ -n "${matchedLine}" ]]; then
         echo "${normalizedInput}"
     fi
