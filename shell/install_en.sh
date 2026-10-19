@@ -10341,7 +10341,7 @@ menu() {
     cd "$HOME" || exit
     echoContent red "\n=============================================================="
     echoContent green "Author: wizard89"
-    echoContent green " Current version: v3.3.19"
+    echoContent green " Current version: v3.3.20"
     echoContent green "Github：https://github.com/wizard89/v2ray-agent"
     echoContent green "Description: 8-in-1 coexistence script\c"
     showInstallStatus
