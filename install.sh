@@ -476,6 +476,8 @@ readInstallProtocolType() {
             xrayVLESSRealityXHTTPServerName=$(jq -r .inbounds[0].streamSettings.realitySettings.serverNames[0] "${row}.json")
 
             currentRealityXHTTPPublicKey=$(jq -r .inbounds[0].streamSettings.realitySettings.publicKey "${row}.json")
+            currentRealityMldsa65Seed=$(jq -r '.inbounds[0].streamSettings.realitySettings.mldsa65Seed // empty' "${row}.json")
+            currentRealityMldsa65Verify=$(jq -r '.inbounds[0].streamSettings.realitySettings.mldsa65Verify // empty' "${row}.json")
             #            currentRealityXHTTPPrivateKey=$(jq -r .inbounds[0].streamSettings.realitySettings.privateKey "${row}.json")
 
             #            if [[ "${coreInstallType}" == "2" ]]; then
@@ -523,8 +525,8 @@ readInstallProtocolType() {
                 currentRealityPublicKey=$(jq -r .inbounds[1].streamSettings.realitySettings.publicKey "${row}.json")
                 currentRealityPrivateKey=$(jq -r .inbounds[1].streamSettings.realitySettings.privateKey "${row}.json")
 
-                currentRealityMldsa65Seed=$(jq -r .inbounds[1].streamSettings.realitySettings.mldsa65Seed "${row}.json")
-                currentRealityMldsa65Verify=$(jq -r .inbounds[1].streamSettings.realitySettings.mldsa65Verify "${row}.json")
+                currentRealityMldsa65Seed=$(jq -r '.inbounds[1].streamSettings.realitySettings.mldsa65Seed // empty' "${row}.json")
+                currentRealityMldsa65Verify=$(jq -r '.inbounds[1].streamSettings.realitySettings.mldsa65Verify // empty' "${row}.json")
 
                 frontingTypeReality=07_VLESS_vision_reality_inbounds
 
@@ -3291,43 +3293,6 @@ initTuicProtocol() {
 #EOF
 #}
 
-# 初始化singbox route配置
-initSingBoxRouteConfig() {
-    downloadSingBoxGeositeDB
-    local outboundTag=$1
-    if [[ ! -f "${singBoxConfigPath}${outboundTag}_route.json" ]]; then
-        cat <<EOF >"${singBoxConfigPath}${outboundTag}_route.json"
-{
-    "route": {
-        "geosite": {
-            "path": "${singBoxConfigPath}geosite.db"
-        },
-        "rules": [
-            {
-                "domain": [
-                ],
-                "geosite": [
-                ],
-                "outbound": "${outboundTag}"
-            }
-        ]
-    }
-}
-EOF
-    fi
-}
-# 下载sing-box geosite db
-downloadSingBoxGeositeDB() {
-    if [[ ! -f "${singBoxConfigPath}geosite.db" ]]; then
-        if [[ "${release}" == "alpine" ]]; then
-            wget -q -P "${singBoxConfigPath}" https://github.com/Johnshall/sing-geosite/releases/latest/download/geosite.db
-        else
-            wget -q "${wgetShowProgressStatus}" -P "${singBoxConfigPath}" https://github.com/Johnshall/sing-geosite/releases/latest/download/geosite.db
-        fi
-
-    fi
-}
-
 # 添加sing-box路由规则
 addSingBoxRouteRule() {
     local outboundTag=$1
@@ -4022,6 +3987,54 @@ EOF
         cat <<EOF >/etc/v2ray-agent/xray/conf/12_VLESS_XHTTP_inbounds.json
 {
     "inbounds":[
+    {
+	  "port": ${xHTTPort},
+	  "listen": "0.0.0.0",
+	  "protocol": "vless",
+	  "tag":"VLESSRealityXHTTP",
+	  "settings": {
+		"clients": $(initXrayClients 12),
+		"decryption": "none"
+	  },
+	  "streamSettings": {
+		"network": "xhttp",
+		"security": "reality",
+		"realitySettings": {
+            "show": false,
+            "target": "${realityServerName}:${realityDomainPort}",
+            "xver": 0,
+            "serverNames": [
+                "${realityServerName}"
+            ],
+            "privateKey": "${realityPrivateKey}",
+            "publicKey": "${realityPublicKey}",
+            "mldsa65Seed": "${realityMldsa65Seed}",
+            "mldsa65Verify": "${realityMldsa65Verify}",
+            "minClientVer": "1.8.2",
+            "maxTimeDiff": 70000,
+            "shortIds": [
+                "",
+                "6ba85179e30d4fc2"
+            ]
+        },
+        "xhttpSettings": {
+            "host": "${realityServerName}",
+            "path": "/${customPath}xHTTP",
+            "mode": "auto"
+        }
+	  }
+	}
+]
+}
+EOF
+    elif [[ -z "$3" ]]; then
+        rm /etc/v2ray-agent/xray/conf/12_VLESS_XHTTP_inbounds.json >/dev/null 2>&1
+    fi
+    if echo "${selectCustomInstallType}" | grep -q ",3," || [[ "$1" == "all" ]]; then
+        fallbacksList=${fallbacksList}',{"path":"/'${customPath}'vws","dest":31299,"xver":1}'
+        cat <<EOF >/etc/v2ray-agent/xray/conf/05_VMess_WS_inbounds.json
+{
+    "inbounds":[
         {
           "listen": "127.0.0.1",
           "port": 31299,
@@ -4043,99 +4056,70 @@ EOF
 }
 EOF
     elif [[ -z "$3" ]]; then
-        rm /etc/v2ray-agent/xray/conf/12_VLESS_XHTTP_inbounds.json >/dev/null 2>&1
-    fi
-    # trojan_grpc
-    if echo "${selectCustomInstallType}" | grep -q ",2," || [[ "$1" == "all" ]]; then
-        if ! echo "${selectCustomInstallType}" | grep -q ",5," && [[ -n ${selectCustomInstallType} ]]; then
-            fallbacksList=${fallbacksList//31302/31304}
-        fi
-        cat <<EOF >/etc/v2ray-agent/xray/conf/04_trojan_gRPC_inbounds.json
-{
-    "inbounds": [
-        {
-            "port": 31304,
-            "listen": "127.0.0.1",
-            "protocol": "trojan",
-            "tag": "trojangRPCTCP",
-            "settings": {
-                "clients": $(initXrayClients 2),
-                "fallbacks": [
-                    {
-                        "dest": "31300"
-                    }
-                ]
-            },
-            "streamSettings": {
-                "network": "grpc",
-                "grpcSettings": {
-                    "serviceName": "${customPath}trojangrpc"
-                }
-            }
-        }
-    ]
-}
-EOF
-    elif [[ -z "$3" ]]; then
-        rm /etc/v2ray-agent/xray/conf/04_trojan_gRPC_inbounds.json >/dev/null 2>&1
-    fi
-
-    # VMess_WS
-    if echo "${selectCustomInstallType}" | grep -q ",3," || [[ "$1" == "all" ]]; then
-        fallbacksList=${fallbacksList}',{"path":"/'${customPath}'vws","dest":31299,"xver":1}'
-        cat <<EOF >/etc/v2ray-agent/xray/conf/05_VMess_WS_inbounds.json
-{
-"inbounds":[
-{
-  "listen": "127.0.0.1",
-  "port": 31299,
-  "protocol": "vmess",
-  "tag":"VMessWS",
-  "settings": {
-    "clients": $(initXrayClients 3)
-  },
-  "streamSettings": {
-    "network": "ws",
-    "security": "none",
-    "wsSettings": {
-      "acceptProxyProtocol": true,
-      "path": "/${customPath}vws"
-    }
-  }
-}
-]
-}
-EOF
-    elif [[ -z "$3" ]]; then
         rm /etc/v2ray-agent/xray/conf/05_VMess_WS_inbounds.json >/dev/null 2>&1
     fi
+    # trojan_grpc
+    #    if echo "${selectCustomInstallType}" | grep -q ",2," || [[ "$1" == "all" ]]; then
+    #        if ! echo "${selectCustomInstallType}" | grep -q ",5," && [[ -n ${selectCustomInstallType} ]]; then
+    #            fallbacksList=${fallbacksList//31302/31304}
+    #        fi
+    #        cat <<EOF >/etc/v2ray-agent/xray/conf/04_trojan_gRPC_inbounds.json
+    #{
+    #    "inbounds": [
+    #        {
+    #            "port": 31304,
+    #            "listen": "127.0.0.1",
+    #            "protocol": "trojan",
+    #            "tag": "trojangRPCTCP",
+    #            "settings": {
+    #                "clients": $(initXrayClients 2),
+    #                "fallbacks": [
+    #                    {
+    #                        "dest": "31300"
+    #                    }
+    #                ]
+    #            },
+    #            "streamSettings": {
+    #                "network": "grpc",
+    #           "grpcSettings": {
+    #                    "serviceName": "${customPath}trojangrpc"
+    #                }
+    #            }
+    #        }
+    #    ]
+    #}
+    #EOF
+    #    elif [[ -z "$3" ]]; then
+    #        rm /etc/v2ray-agent/xray/conf/04_trojan_gRPC_inbounds.json >/dev/null 2>&1
+    #    fi
 
-    if echo "${selectCustomInstallType}" | grep -q ",5," || [[ "$1" == "all" ]]; then
-        cat <<EOF >/etc/v2ray-agent/xray/conf/06_VLESS_gRPC_inbounds.json
-{
-    "inbounds":[
-    {
-        "port": 31301,
-        "listen": "127.0.0.1",
-        "protocol": "vless",
-        "tag":"VLESSGRPC",
-        "settings": {
-            "clients": $(initXrayClients 5),
-            "decryption": "none"
-        },
-        "streamSettings": {
-            "network": "grpc",
-            "grpcSettings": {
-                "serviceName": "${customPath}grpc"
-            }
-        }
-    }
-]
-}
-EOF
-    elif [[ -z "$3" ]]; then
-        rm /etc/v2ray-agent/xray/conf/06_VLESS_gRPC_inbounds.json >/dev/null 2>&1
-    fi
+    # VLESS_gRPC
+    #    if echo "${selectCustomInstallType}" | grep -q ",5," || [[ "$1" == "all" ]]; then
+    #        cat <<EOF >/etc/v2ray-agent/xray/conf/06_VLESS_gRPC_inbounds.json
+    #{
+    #    "inbounds":[
+    #        {
+    #            "port": 31301,
+    #            "listen": "127.0.0.1",
+    #            "protocol": "vless",
+    #            "tag":"VLESSGRPC",
+    #            "settings": {
+    #                "clients": $(initXrayClients 5),
+    #                "decryption": "none"
+    #            },
+    #            "streamSettings": {
+    #                "network": "grpc",
+    #                "grpcSettings": {
+    #                    "serviceName": "${customPath}grpc"
+    #                }
+    #            }
+    #        }
+    #    ]
+    #}
+    #EOF
+    #    elif [[ -z "$3" ]]; then
+    #        rm /etc/v2ray-agent/xray/conf/06_VLESS_gRPC_inbounds.json >/dev/null 2>&1
+    #    fi
 
     # VLESS Vision
     if echo "${selectCustomInstallType}" | grep -q ",0," || [[ "$1" == "all" ]]; then
@@ -4230,6 +4214,7 @@ EOF
           "publicKey": "${realityPublicKey}",
           "mldsa65Seed": "${realityMldsa65Seed}",
           "mldsa65Verify": "${realityMldsa65Verify}",
+          "minClientVer": "1.8.2",
           "maxTimeDiff": 70000,
           "shortIds": [
             "",
@@ -4269,32 +4254,32 @@ EOF
   }
 }
 EOF
-        cat <<EOF >/etc/v2ray-agent/xray/conf/08_VLESS_vision_gRPC_inbounds.json
-{
-  "inbounds": [
-    {
-      "port": 31305,
-      "listen": "127.0.0.1",
-      "protocol": "vless",
-      "tag": "VLESSRealityGRPC",
-      "settings": {
-        "clients": $(initXrayClients 8),
-        "decryption": "none"
-      },
-      "streamSettings": {
-            "network": "grpc",
-            "grpcSettings": {
-                "serviceName": "grpc",
-                "multiMode": true
-            },
-            "sockopt": {
-                "acceptProxyProtocol": true
-            }
-      }
-    }
-  ]
-}
-EOF
+        #        cat <<EOF >/etc/v2ray-agent/xray/conf/08_VLESS_vision_gRPC_inbounds.json
+        #{
+        #  "inbounds": [
+        #    {
+        #      "port": 31305,
+        #      "listen": "127.0.0.1",
+        #      "protocol": "vless",
+        #      "tag": "VLESSRealityGRPC",
+        #      "settings": {
+        #        "clients": $(initXrayClients 8),
+        #        "decryption": "none"
+        #      },
+        #      "streamSettings": {
+        #            "network": "grpc",
+        #            "grpcSettings": {
+        #                "serviceName": "grpc",
+        #                "multiMode": true
+        #            },
+        #            "sockopt": {
+        #                "acceptProxyProtocol": true
+        #            }
+        #      }
+        #    }
+        #  ]
+        #}
+        #EOF
 
     elif [[ -z "$3" ]]; then
         rm /etc/v2ray-agent/xray/conf/07_VLESS_vision_reality_inbounds.json >/dev/null 2>&1
@@ -4916,13 +4901,20 @@ EOF
 
     elif [[ "${type}" == "vlessXHTTP" ]]; then
 
+        local xhttpMldsa65Param=
+        local xhttpMldsa65ParamEncoded=
+        if [[ -n "${currentRealityMldsa65Verify}" && "${currentRealityMldsa65Verify}" != "null" ]]; then
+            xhttpMldsa65Param="&pqv=${currentRealityMldsa65Verify}"
+            xhttpMldsa65ParamEncoded="%26pqv%3D${currentRealityMldsa65Verify}"
+        fi
+
         echoContent yellow " ---> 通用格式(VLESS+reality+XHTTP)"
-        echoContent green "    vless://${id}@${add}:${port}?encryption=none&security=reality&type=xhttp&sni=${xrayVLESSRealityXHTTPServerName}&host=${xrayVLESSRealityXHTTPServerName}&fp=chrome&path=${path}&pbk=${currentRealityXHTTPPublicKey}&sid=6ba85179e30d4fc2#${email}\n"
+        echoContent green "    vless://${id}@${add}:${port}?encryption=none&security=reality${xhttpMldsa65Param}&type=xhttp&sni=${xrayVLESSRealityXHTTPServerName}&host=${xrayVLESSRealityXHTTPServerName}&fp=chrome&path=${path}&pbk=${currentRealityXHTTPPublicKey}&sid=6ba85179e30d4fc2#${email}\n"
 
         echoContent yellow " ---> 格式化明文(VLESS+reality+XHTTP)"
         echoContent green "协议类型:VLESS reality，地址:${add}，publicKey:${currentRealityXHTTPPublicKey}，shortId: 6ba85179e30d4fc2,serverNames：${xrayVLESSRealityXHTTPServerName}，端口:${port}，路径：${path}，SNI:${xrayVLESSRealityXHTTPServerName}，伪装域名:${xrayVLESSRealityXHTTPServerName}，用户ID:${id}，传输方式:xhttp，账户名:${email}\n"
         cat <<EOF >>"/etc/v2ray-agent/subscribe_local/default/${user}"
-vless://${id}@${add}:${port}?encryption=none&security=reality&type=xhttp&sni=${xrayVLESSRealityXHTTPServerName}&fp=chrome&path=${path}&pbk=${currentRealityXHTTPPublicKey}&sid=6ba85179e30d4fc2#${email}
+vless://${id}@${add}:${port}?encryption=none&security=reality${xhttpMldsa65Param}&type=xhttp&sni=${xrayVLESSRealityXHTTPServerName}&fp=chrome&path=${path}&pbk=${currentRealityXHTTPPublicKey}&sid=6ba85179e30d4fc2#${email}
 EOF
 
         cat <<EOF >>"/etc/v2ray-agent/subscribe_local/clashMeta/${user}"
@@ -4947,7 +4939,7 @@ EOF
 EOF
 
         echoContent yellow " ---> 二维码 VLESS(VLESS+reality+XHTTP)"
-        echoContent green "    https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=vless%3A%2F%2F${id}%40${add}%3A${port}%3Fencryption%3Dnone%26security%3Dreality%26type%3Dxhttp%26sni%3D${xrayVLESSRealityXHTTPServerName}%26fp%3Dchrome%26path%3D${path}%26host%3D${xrayVLESSRealityXHTTPServerName}%26pbk%3D${currentRealityXHTTPPublicKey}%26sid%3D6ba85179e30d4fc2%23${email}\n"
+        echoContent green "    https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=vless%3A%2F%2F${id}%40${add}%3A${port}%3Fencryption%3Dnone%26security%3Dreality${xhttpMldsa65ParamEncoded}%26type%3Dxhttp%26sni%3D${xrayVLESSRealityXHTTPServerName}%26fp%3Dchrome%26path%3D${path}%26host%3D${xrayVLESSRealityXHTTPServerName}%26pbk%3D${currentRealityXHTTPPublicKey}%26sid%3D6ba85179e30d4fc2%23${email}\n"
     elif
         [[ "${type}" == "vlessgrpc" ]]
     then
@@ -7127,7 +7119,7 @@ addSingBoxGeoIPRouteRule() {
         "type": "remote",
         "format": "binary",
         "url": "https://raw.githubusercontent.com/SagerNet/sing-geoip/rule-set/geoip-${geoipCode}.srs",
-        "download_detour": "01_direct_outbound"
+        "http_client": "rule_set_http"
       }
     ]
   }
@@ -7820,7 +7812,7 @@ initSingBoxRules() {
             matchedRuleName=$(getDLCGeositeName "${normalizedLine}" "/etc/v2ray-agent/sing-box")
 
             if [[ -n "${matchedRuleName}" ]]; then
-                ruleSet=$(echo "${ruleSet}" | jq -r ". += [{\"tag\":\"${matchedRuleName}_$2\",\"type\":\"remote\",\"format\":\"binary\",\"url\":\"https://raw.githubusercontent.com/SagerNet/sing-geosite/rule-set/geosite-${matchedRuleName}.srs\",\"download_detour\":\"01_direct_outbound\"}]")
+                ruleSet=$(echo "${ruleSet}" | jq -r ". += [{\"tag\":\"${matchedRuleName}_$2\",\"type\":\"remote\",\"format\":\"binary\",\"url\":\"https://raw.githubusercontent.com/SagerNet/sing-geosite/rule-set/geosite-${matchedRuleName}.srs\",\"http_client\":\"rule_set_http\"}]")
             else
                 domainRules=$(echo "${domainRules}" | jq -r --arg reg "^([a-zA-Z0-9_-]+\\.)*${normalizedLine//./\\.}" '. += [$reg]')
             fi
@@ -7892,13 +7884,44 @@ setSocks5InboundRouting() {
 
 # 设置sniff routing规则
 setSniffRouting() {
+    local singBoxDNSConfigPath="/etc/v2ray-agent/sing-box/conf/config/dns.json"
+    if [[ -f "${singBoxDNSConfigPath}" ]]; then
+        jq '
+          .dns.servers = (.dns.servers // [])
+          | if any(.dns.servers[]?; .tag == "local") then .
+            elif any(.dns.servers[]?; .type == "local" and ((.tag // "") == "")) then
+              .dns.servers |= map(if .type == "local" and ((.tag // "") == "") then .tag = "local" else . end)
+            else
+              .dns.servers += [{"tag": "local", "type": "local"}]
+            end
+        ' "${singBoxDNSConfigPath}" >"${singBoxDNSConfigPath}.tmp" && mv "${singBoxDNSConfigPath}.tmp" "${singBoxDNSConfigPath}"
+    else
+        cat <<EOF >"${singBoxDNSConfigPath}"
+{
+    "dns": {
+        "servers": [
+            {
+                "tag": "local",
+                "type": "local"
+            }
+        ]
+    }
+}
+EOF
+    fi
+
     cat <<EOF >"/etc/v2ray-agent/sing-box/conf/config/sniff.json"
 {
     "route":{
+        "default_domain_resolver": "local",
         "rules":[
           {
             "action": "sniff",
             "timeout": "1s"
+          },
+          {
+            "protocol": "dns",
+            "action": "hijack-dns"
           }
         ]
     }
@@ -8347,6 +8370,7 @@ EOF
     "dns": {
         "servers":[
             {
+                "tag":"local",
                 "type":"local"
             }
         ]
@@ -9618,7 +9642,7 @@ initRealityMldsa65() {
         length=$(/etc/v2ray-agent/xray/xray tls ping "${realityServerName}:${realityDomainPort}" | grep "Certificate chain's total length:" | awk '{print $5}' | head -1)
 
         if [ "$length" -gt 3500 ]; then
-            if [[ -n "${currentRealityMldsa65}" && -z "${lastInstallationConfig}" ]]; then
+            if [[ -n "${currentRealityMldsa65Seed}" && -z "${lastInstallationConfig}" ]]; then
                 read -r -p "读取到上次安装记录，是否使用上次安装时的Seed/Verify ？[y/n]:" historyMldsa65Status
                 if [[ "${historyMldsa65Status}" == "y" ]]; then
                     realityMldsa65Seed=${currentRealityMldsa65Seed}
@@ -9669,7 +9693,7 @@ initRealityClientServersName() {
     if [[ "${coreInstallType}" == "1" || "${selectCoreType}" == "1" ]]; then
         realityDestDomainList="download-installer.cdn.mozilla.net,addons.mozilla.org,s0.awsstatic.com,d1.awsstatic.com,images-na.ssl-images-amazon.com,m.media-amazon.com,player.live-video.net,one-piece.com,lol.secure.dyn.riotcdn.net,www.lovelive-anime.jp,academy.nvidia.com,dl.google.com,www.google-analytics.com,www.caltech.edu,www.calstatela.edu,www.suny.edu,www.suffolk.edu,www.python.org,vuejs-jp.org,vuejs.org,zh-hk.vuejs.org,react.dev,www.java.com,www.oracle.com,www.mysql.com,www.mongodb.com,redis.io,cname.vercel-dns.com,vercel-dns.com,www.swift.com,academy.nvidia.com,www.swift.com,www.cisco.com,www.asus.com,www.samsung.com,www.amd.com,www.umcg.nl,www.fom-international.com,www.u-can.co.jp,github.io"
     elif [[ "${coreInstallType}" == "2" || "${selectCoreType}" == "2" ]]; then
-        realityDestDomainList="download-installer.cdn.mozilla.net,addons.mozilla.org,s0.awsstatic.com,d1.awsstatic.com,images-na.ssl-images-amazon.com,m.media-amazon.com,player.live-video.net,one-piece.com,lol.secure.dyn.riotcdn.net,www.lovelive-anime.jp,academy.nvidia.com,dl.google.com,www.google-analytics.com,www.python.org,vuejs-jp.org,vuejs.org,zh-hk.vuejs.org,react.dev,www.java.com,www.oracle.com,www.mysql.com,www.mongodb.com,cname.vercel-dns.com,vercel-dns.com,www.swift.com,academy.nvidia.com,www.swift.com,www.cisco.com,www.asus.com,www.samsung.com,www.amd.com,www.fom-international.com,github.io"
+        realityDestDomainList="download-installer.cdn.mozilla.net,addons.mozilla.org,s0.awsstatic.com,d1.awsstatic.com,images-na.ssl-images-amazon.com,m.media-amazon.com,player.live-video.net,one-piece.com,www.lovelive-anime.jp,academy.nvidia.com,dl.google.com,www.google-analytics.com,www.python.org,vuejs-jp.org,vuejs.org,zh-hk.vuejs.org,react.dev,www.oracle.com,www.mysql.com,www.mongodb.com,cname.vercel-dns.com,vercel-dns.com,www.swift.com,academy.nvidia.com,www.swift.com,www.cisco.com,www.asus.com,www.samsung.com,www.amd.com,www.fom-international.com,github.io"
     fi
     if [[ -n "${realityServerName}" && -z "${lastInstallationConfig}" ]]; then
         if echo ${realityDestDomainList} | grep -q "${realityServerName}"; then
@@ -10013,7 +10037,7 @@ menu() {
 	echoContent red "\n=============================================================="
 	echoContent green "原作者：mack-a"
 	echoContent green "作者：Wizard89"
-	echoContent green "当前版本：v3.3.17"
+	echoContent green "当前版本：v3.3.18"
 	echoContent green "Github：https://github.com/Wizard89/v2ray-agent"
 	echoContent green "描述：八合一共存脚本\c"
     showInstallStatus
