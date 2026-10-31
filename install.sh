@@ -741,7 +741,7 @@ readInstallProtocolType() {
             currentInstallProtocolType="${currentInstallProtocolType}11,"
             if [[ "${coreInstallType}" == "2" ]]; then
                 frontingType=11_VMess_HTTPUpgrade_inbounds
-                singBoxVMessHTTPUpgradePort=$(grep 'listen' <${nginxConfigPath}sing_box_VMess_HTTPUpgrade.conf | awk '{print $2}')
+                singBoxVMessHTTPUpgradePort=$(grep 'listen' "${nginxConfigPath}sing_box_VMess_HTTPUpgrade.conf" 2>/dev/null | awk '{print $2}')
             fi
         fi
         if echo "${row}" | grep -q socks5_inbounds; then
@@ -1058,7 +1058,7 @@ readConfigHostPathUUID() {
         if [[ -n "${frontingType}" ]]; then
             currentHost=$(jq -r .inbounds[0].tls.server_name ${configPath}${frontingType}.json)
             if echo ${currentInstallProtocolType} | grep -q ",11," && [[ "${currentHost}" == "null" ]]; then
-                currentHost=$(grep 'server_name' <${nginxConfigPath}sing_box_VMess_HTTPUpgrade.conf | awk '{print $2}')
+                currentHost=$(grep 'server_name' "${nginxConfigPath}sing_box_VMess_HTTPUpgrade.conf" 2>/dev/null | awk '{print $2}')
                 currentHost=${currentHost//;/}
             fi
             currentUUID=$(jq -r .inbounds[0].users[0].uuid ${configPath}${frontingType}.json)
@@ -1090,10 +1090,10 @@ readConfigHostPathUUID() {
                 if [[ "${dest}" == "31302" || "${dest}" == "31304" ]]; then
                     # checkBTPanel
                     # check1Panel
-                    if grep -q "trojangrpc {" <${nginxConfigPath}alone.conf; then
-                        currentPath=$(grep "trojangrpc {" <${nginxConfigPath}alone.conf | awk -F "[/]" '{print $2}' | awk -F "[t][r][o][j][a][n]" '{print $1}')
-                    elif grep -q "grpc {" <${nginxConfigPath}alone.conf; then
-                        currentPath=$(grep "grpc {" <${nginxConfigPath}alone.conf | head -1 | awk -F "[/]" '{print $2}' | awk -F "[g][r][p][c]" '{print $1}')
+                    if [[ -f "${nginxConfigPath}alone.conf" ]] && grep -q "trojangrpc {" "${nginxConfigPath}alone.conf"; then
+                        currentPath=$(grep "trojangrpc {" "${nginxConfigPath}alone.conf" 2>/dev/null | awk -F "[/]" '{print $2}' | awk -F "[t][r][o][j][a][n]" '{print $1}')
+                    elif [[ -f "${nginxConfigPath}alone.conf" ]] && grep -q "grpc {" "${nginxConfigPath}alone.conf"; then
+                        currentPath=$(grep "grpc {" "${nginxConfigPath}alone.conf" 2>/dev/null | head -1 | awk -F "[/]" '{print $2}' | awk -F "[g][r][p][c]" '{print $1}')
                     fi
                 fi
             fi
@@ -1599,6 +1599,10 @@ checkPortOpen() {
     if [[ -z "${btDomain}" ]]; then
 
         handleNginx stop
+        if ! handleNginx stop; then
+            echoContent red " ---> 无法停止Nginx，退出端口检测"
+            return 1
+        fi
         # 初始化nginx配置
         touch ${nginxConfigPath}checkPortOpen.conf
         local listenIPv6PortConfig=
@@ -1625,11 +1629,19 @@ server {
 }
 EOF
         handleNginx start
+        if ! handleNginx start; then
+            rm -f "${nginxConfigPath}checkPortOpen.conf"
+            echoContent red " ---> Nginx启动失败，无法检测端口，请检查服务日志及端口占用"
+            return 1
+        fi
         # 检查域名+端口的开放
         checkPortOpenResult=$(curl -s -m 10 "http://${domain}:${port}/checkPort")
         localIP=$(curl -s -m 10 "http://${domain}:${port}/ip")
-        rm "${nginxConfigPath}checkPortOpen.conf"
-        handleNginx stop
+        rm -f "${nginxConfigPath}checkPortOpen.conf"
+        if ! handleNginx stop; then
+            echoContent red " ---> 无法停止端口检测服务，退出安装"
+            return 1
+        fi
         if [[ "${checkPortOpenResult}" == "fjkvymb6len" ]]; then
             echoContent green " ---> 检测到${port}端口已开放"
         else
@@ -1652,7 +1664,10 @@ EOF
 
 # 初始化Nginx申请证书配置
 initTLSNginxConfig() {
-    handleNginx stop
+    if ! handleNginx stop; then
+        echoContent red " ---> 无法停止Nginx，无法初始化TLS配置"
+        return 1
+    fi
     echoContent skyBlue "\n进度  $1/${totalProgress} : 初始化Nginx申请证书配置"
     if [[ -n "${currentHost}" && -z "${lastInstallationConfig}" ]]; then
         echo
@@ -1675,14 +1690,17 @@ initTLSNginxConfig() {
 
     if [[ -z ${domain} ]]; then
         echoContent red "  域名不可为空--->"
-        initTLSNginxConfig 3
+        initTLSNginxConfig 3 || return 1
     else
         dnsTLSDomain=$(echo "${domain}" | awk -F "." '{$1="";print $0}' | sed 's/^[[:space:]]*//' | sed 's/ /./g')
         if [[ "${selectCoreType}" == "1" ]] && xraySelectionNeedsCustomPort "${selectCustomInstallType}"; then
-            customPortFunction
+            customPortFunction || return 1
         fi
         # 修改配置
-        handleNginx stop
+        if ! handleNginx stop; then
+            echoContent red " ---> 无法停止Nginx，无法继续初始化TLS配置"
+            return 1
+        fi
     fi
 }
 
@@ -2119,7 +2137,7 @@ customPortFunction() {
                 if [[ -z "${btDomain}" ]]; then
                     checkDNSIP "${domain}"
                     removeNginxDefaultConf
-                    checkPortOpen "${port}" "${domain}"
+                    checkPortOpen "${port}" "${domain}" || return 1
                 fi
             else
                 echoContent red " ---> 端口输入错误"
@@ -2341,49 +2359,75 @@ updateSELinuxHTTPPortT() {
             $(find /usr/bin /usr/sbin | grep -w semanage) port -a -t http_port_t -p tcp 31302
             echoContent green " ---> http_port_t 31302 端口开放成功"
         fi
-        handleNginx start
+        return 0
 
     else
-        exit 0
+        return 1
+    fi
+}
+
+# 检查Nginx服务是否运行
+isNginxRunning() {
+    if [[ "${release}" == "alpine" ]]; then
+        rc-service nginx status >/dev/null 2>&1
+    else
+        systemctl is-active --quiet nginx
     fi
 }
 
 # 操作Nginx
 handleNginx() {
+    local -a nginxStart nginxStop nginxStatus
+    if [[ "${release}" == "alpine" ]]; then
+        nginxStart=(rc-service nginx start)
+        nginxStop=(rc-service nginx stop)
+        nginxStatus=(rc-service nginx status)
+    else
+        nginxStart=(systemctl start nginx)
+        nginxStop=(systemctl stop nginx)
+        nginxStatus=(systemctl is-active --quiet nginx)
+    fi
 
-    if ! echo "${selectCustomInstallType}" | grep -qwE ",7,|,8,|,7,8," && [[ -z $(pgrep -f "nginx") ]] && [[ "$1" == "start" ]]; then
-        if [[ "${release}" == "alpine" ]]; then
-            rc-service nginx start 2>/etc/v2ray-agent/nginx_error.log
-        else
-            systemctl start nginx 2>/etc/v2ray-agent/nginx_error.log
+    if [[ "$1" == "start" ]]; then
+        if echo "${selectCustomInstallType}" | grep -qwE ",7,|,8,|,7,8,"; then
+            return 0
+        fi
+        if "${nginxStatus[@]}" >/dev/null 2>&1; then
+            return 0
         fi
 
         sleep 0.5
 
-        if [[ -z $(pgrep -f "nginx") ]]; then
-            echoContent red " ---> Nginx启动失败"
-            echoContent red " ---> 请手动尝试安装nginx后，再次执行脚本"
-            nginx
-            if grep -q "journalctl -xe" </etc/v2ray-agent/nginx_error.log; then
-                updateSELinuxHTTPPortT
+        local startResult=0
+        "${nginxStart[@]}" 2>/etc/v2ray-agent/nginx_error.log || startResult=$?
+        if [[ "${startResult}" -ne 0 ]] || ! "${nginxStatus[@]}" >/dev/null 2>&1; then
+            if [[ "${release}" != "alpine" ]] && updateSELinuxHTTPPortT; then
+                startResult=0
+                "${nginxStart[@]}" 2>/etc/v2ray-agent/nginx_error.log || startResult=$?
             fi
-        else
-            echoContent green " ---> Nginx启动成功"
+            if [[ "${startResult}" -ne 0 ]] || ! "${nginxStatus[@]}" >/dev/null 2>&1; then
+                echoContent red " ---> Nginx启动失败，请检查服务日志及端口占用"
+                cat /etc/v2ray-agent/nginx_error.log
+                nginx -t || true
+                return 1
+            fi
         fi
-
-    elif [[ -n $(pgrep -f "nginx") ]] && [[ "$1" == "stop" ]]; then
-
-        if [[ "${release}" == "alpine" ]]; then
-            rc-service nginx stop
-        else
-            systemctl stop nginx
+        echoContent green " ---> Nginx启动成功"
+    elif [[ "$1" == "stop" ]]; then
+        if ! "${nginxStatus[@]}" >/dev/null 2>&1; then
+            return 0
         fi
-        sleep 0.5
-
-        if [[ -z ${btDomain} && -n $(pgrep -f "nginx") ]]; then
-            pgrep -f "nginx" | xargs kill -9
+        if ! "${nginxStop[@]}"; then
+            echoContent red " ---> Nginx关闭失败，请检查宿主机服务状态"
+            return 1
+        fi
+        if "${nginxStatus[@]}" >/dev/null 2>&1; then
+            echoContent red " ---> Nginx仍在运行，请检查宿主机服务状态"
+            return 1
         fi
         echoContent green " ---> Nginx关闭成功"
+    else
+        return 2
     fi
 }
 
@@ -2490,7 +2534,7 @@ renewalTLS() {
     fi
 
     echoContent yellow " ---> 证书进入 ${sslRenewalThresholdDays} 天续期窗口，开始更新"
-    handleNginx stop
+    handleNginx stop || return 1
 
     if [[ "${coreInstallType}" == "1" ]]; then
         handleXray stop
@@ -2519,12 +2563,12 @@ renewalTLS() {
         elif [[ "${coreInstallType}" == "2" ]]; then
             handleSingBox start
         fi
-        handleNginx start
+        handleNginx start || return 1
         return 1
     fi
 
     reloadCore
-    handleNginx start
+    handleNginx start || return 1
     return 0
 }
 
@@ -2866,8 +2910,8 @@ After=network.target nss-lookup.target
 [Service]
 User=root
 WorkingDirectory=/root
-CapabilityBoundingSet=CAP_NET_ADMIN CAP_NET_BIND_SERVICE CAP_SYS_PTRACE CAP_DAC_READ_SEARCH
-AmbientCapabilities=CAP_NET_ADMIN CAP_NET_BIND_SERVICE CAP_SYS_PTRACE CAP_DAC_READ_SEARCH
+CapabilityBoundingSet=CAP_NET_ADMIN CAP_NET_BIND_SERVICE CAP_NET_RAW CAP_SYS_PTRACE CAP_DAC_READ_SEARCH
+AmbientCapabilities=CAP_NET_ADMIN CAP_NET_BIND_SERVICE CAP_NET_RAW CAP_SYS_PTRACE CAP_DAC_READ_SEARCH
 ExecStart=${execStart}
 ExecReload=/bin/kill -HUP $MAINPID
 Restart=on-failure
@@ -3924,7 +3968,7 @@ singBoxTuicInstall() {
     totalProgress=5
     installSingBox 1
     selectCustomInstallType=",9,"
-    initSingBoxConfig custom 2 true
+    initSingBoxConfig custom 2 true || return 1
     installSingBoxService 3
     reloadCore
     showAccounts 4
@@ -3940,7 +3984,7 @@ singBoxHysteria2Install() {
     totalProgress=5
     installSingBox 1
     selectCustomInstallType=",6,"
-    initSingBoxConfig custom 2 true
+    initSingBoxConfig custom 2 true || return 1
     installSingBoxService 3
     reloadCore
     showAccounts 4
@@ -4686,7 +4730,7 @@ initSingBoxConfig() {
         removeNginxDefaultConf
         handleSingBox stop
 
-        checkPortOpen "${result[-1]}" "${domain}"
+        checkPortOpen "${result[-1]}" "${domain}" || return 1
         cat <<EOF >/etc/v2ray-agent/sing-box/conf/config/02_VLESS_TCP_inbounds.json
 {
     "inbounds":[
@@ -4721,7 +4765,7 @@ EOF
         removeNginxDefaultConf
         handleSingBox stop
         randomPathFunction
-        checkPortOpen "${result[-1]}" "${domain}"
+        checkPortOpen "${result[-1]}" "${domain}" || return 1
         cat <<EOF >/etc/v2ray-agent/sing-box/conf/config/03_VLESS_WS_inbounds.json
 {
     "inbounds":[
@@ -4762,7 +4806,7 @@ EOF
         removeNginxDefaultConf
         handleSingBox stop
         randomPathFunction
-        checkPortOpen "${result[-1]}" "${domain}"
+        checkPortOpen "${result[-1]}" "${domain}" || return 1
         cat <<EOF >/etc/v2ray-agent/sing-box/conf/config/05_VMess_WS_inbounds.json
 {
     "inbounds":[
@@ -5015,7 +5059,7 @@ EOF
         handleSingBox stop
         randomPathFunction
         rm -rf "${nginxConfigPath}sing_box_VMess_HTTPUpgrade.conf" >/dev/null 2>&1
-        checkPortOpen "${result[-1]}" "${domain}"
+        checkPortOpen "${result[-1]}" "${domain}" || return 1
         singBoxNginxConfig "$1" "${result[-1]}"
         bootStartup nginx
         cat <<EOF >/etc/v2ray-agent/sing-box/conf/config/11_VMess_HTTPUpgrade_inbounds.json
@@ -6008,7 +6052,7 @@ updateNginxBlog() {
             addNginx302 "${redirectDomain}"
             handleNginx stop
             handleNginx start
-            if [[ -z $(pgrep -f "nginx") ]]; then
+            if ! isNginxRunning; then
                 backupNginxConfig restoreBackup
                 handleNginx start
                 exit 0
@@ -6178,7 +6222,7 @@ unInstall() {
     # checkBTPanel
     echoContent yellow " ---> 脚本不会删除acme相关配置，删除请手动执行 [rm -rf /root/.acme.sh]"
     handleNginx stop
-    if [[ -z $(pgrep -f "nginx") ]]; then
+    if ! isNginxRunning; then
         echoContent green " ---> 停止Nginx成功"
     fi
     if [[ "${release}" == "alpine" ]]; then
@@ -8823,18 +8867,20 @@ customSingBoxInstall() {
         installTools 1
         # 申请tls
         if echo "${selectCustomInstallType}" | grep -q -E ",0,|,1,|,3,|,4,|,6,|,9,|,10,|,13,"; then
-            initTLSNginxConfig 2
-            installTLS 3
-            handleNginx stop
+            initTLSNginxConfig 2 || return 1
+            installTLS 3 || return 1
+            handleNginx stop || return 1
         fi
 
         installSingBox 4
         installSingBoxService 5
-        initSingBoxConfig custom 6
+        initSingBoxConfig custom 6 || return 1
         cleanUp xrayDel
         installCronTLS 7
         handleSingBox stop
         handleSingBox start
+        handleNginx stop || return 1
+        handleNginx start || return 1
         # 生成账号
         checkGFWStatue 8
         showAccounts 9
@@ -8877,7 +8923,7 @@ installSingBoxReality() {
 
     installSingBox 2
     installSingBoxService 3
-    initSingBoxConfig custom 4
+    initSingBoxConfig custom 4 || return 1
     cleanUp xrayDel
     handleSingBox stop
     handleSingBox start
@@ -8921,20 +8967,20 @@ customXrayInstall() {
             echoContent skyBlue "\n进度  3/${totalProgress} : 检测到宝塔面板/1Panel，跳过申请TLS步骤"
             handleXray stop
             if xraySelectionNeedsCustomPort "${selectCustomInstallType}"; then
-                customPortFunction
+                customPortFunction || return 1
             fi
         else
             # 申请tls
             if xraySelectionNeedsCertificate "${selectCustomInstallType}"; then
-                initTLSNginxConfig 2
+                initTLSNginxConfig 2 || return 1
                 handleXray stop
-                installTLS 3
+                installTLS 3 || return 1
             else
                 echoContent skyBlue "\n进度  2/${totalProgress} : 检测到仅安装Reality，跳过TLS证书步骤"
             fi
         fi
 
-        handleNginx stop
+        handleNginx stop || return 1
         # 随机path
         if echo "${selectCustomInstallType}" | grep -qE ",1,|,2,|,3,|,5,|,12,|,14,"; then
             randomPathFunction 4
@@ -8946,7 +8992,7 @@ customXrayInstall() {
         fi
         if xraySelectionNeedsNginx "${selectCustomInstallType}"; then
             updateRedirectNginxConf
-            handleNginx start
+            handleNginx start || return 1
         fi
 
         # 安装Xray
@@ -9020,15 +9066,15 @@ xrayCoreInstall() {
     if [[ -n "${btDomain}" ]]; then
         echoContent skyBlue "\n进度  3/${totalProgress} : 检测到宝塔面板/1Panel，跳过申请TLS步骤"
         handleXray stop
-        customPortFunction
+        customPortFunction || return 1
     else
         # 申请tls
-        initTLSNginxConfig 3
+        initTLSNginxConfig 3 || return 1
         handleXray stop
-        installTLS 4
+        installTLS 4 || return 1
     fi
 
-    handleNginx stop
+    handleNginx stop || return 1
     randomPathFunction 5
 
     # 安装Xray
@@ -9048,7 +9094,7 @@ xrayCoreInstall() {
     sleep 2
     handleXray start
 
-    handleNginx start
+    handleNginx start || return 1
     # 生成账号
     checkGFWStatue 11
     showAccounts 12
@@ -9067,27 +9113,27 @@ singBoxInstall() {
     if [[ -n "${btDomain}" ]]; then
         echoContent skyBlue "\n进度  3/${totalProgress} : 检测到宝塔面板/1Panel，跳过申请TLS步骤"
         handleXray stop
-        customPortFunction
+        customPortFunction || return 1
     else
         # 申请tls
-        initTLSNginxConfig 3
+        initTLSNginxConfig 3 || return 1
         handleXray stop
-        installTLS 4
+        installTLS 4 || return 1
     fi
 
-    handleNginx stop
+    handleNginx stop || return 1
 
     installSingBox 5
     installSingBoxService 6
-    initSingBoxConfig all 7
+    initSingBoxConfig all 7 || return 1
 
     cleanUp xrayDel
     installCronTLS 8
 
     handleSingBox stop
     handleSingBox start
-    handleNginx stop
-    handleNginx start
+    handleNginx stop || return 1
+    handleNginx start || return 1
     # 生成账号
     showAccounts 9
 }
@@ -9248,7 +9294,7 @@ EOF
         handleNginx stop
         handleNginx start
     fi
-    if [[ -z $(pgrep -f "nginx") ]]; then
+    if ! isNginxRunning; then
         handleNginx start
     fi
 }
@@ -10254,7 +10300,7 @@ manageReality() {
         if echo "${currentInstallProtocolType}" | grep -q ",8,"; then
             selectCustomInstallType="${selectCustomInstallType},8,"
         fi
-        initSingBoxConfig custom 1 true
+        initSingBoxConfig custom 1 true || return 1
     fi
 
     reloadCore
@@ -10435,7 +10481,7 @@ menu() {
 	echoContent red "\n=============================================================="
 	echoContent green "原作者：mack-a"
 	echoContent green "作者：Wizard89"
-	echoContent green "当前版本：v3.3.23"
+	echoContent green "当前版本：v3.3.24"
 	echoContent green "Github：https://github.com/Wizard89/v2ray-agent"
 	echoContent green "描述：八合一共存脚本\c"
     showInstallStatus
